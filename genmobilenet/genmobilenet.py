@@ -22,30 +22,33 @@ import torch.nn.functional as F
 from genmobilenet.helpers import load_state_dict_from_url
 from genmobilenet.mobilenet_builder import *
 
-__all__ = ['GenMobileNet', 'mnasnet0_50', 'mnasnet0_75', 'mnasnet1_00', 'mnasnet1_40',
-           'semnasnet0_50', 'semnasnet0_75', 'semnasnet1_00', 'semnasnet1_40', 'mnasnet_small',
-           'mobilenetv1_1_00', 'mobilenetv2_1_00', 'chamnetv1_1_00', 'chamnetv2_1_00',
-           'fbnetc_1_00', 'spnasnet1_00']
+__all__ = ['GenMobileNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_140',
+           'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'semnasnet_140', 'mnasnet_small',
+           'mobilenetv1_100', 'mobilenetv2_100', 'chamnetv1_100', 'chamnetv2_100',
+           'fbnetc_100', 'spnasnet_100']
 
 
 model_urls = {
-    'mnasnet0_50': None,
-    'mnasnet0_75': None,
-    'mnasnet1_00': None,
-    'tflite_mnasnet1_00': 'https://www.dropbox.com/s/q55ir3tx8mpeyol/tflite_mnasnet1_00-31639cdc.pth?dl=1',
-    'mnasnet1_40': None,
-    'semnasnet0_50': None,
-    'semnasnet0_75': None,
-    'semnasnet1_00': None,
-    'tflite_semnasnet1_00':  'https://www.dropbox.com/s/yiori47sr9dydev/tflite_semnasnet1_00-7c780429.pth?dl=1',
-    'semnasnet1_40': None,
+    'mnasnet_050': None,
+    'mnasnet_075': None,
+    'mnasnet_100': None,
+    'tflite_mnasnet_100': 'https://www.dropbox.com/s/q55ir3tx8mpeyol/tflite_mnasnet_100-31639cdc.pth?dl=1',
+    'mnasnet_140': None,
+    'semnasnet_050': None,
+    'semnasnet_075': None,
+    'semnasnet_100': None,
+    'tflite_semnasnet_100':  'https://www.dropbox.com/s/yiori47sr9dydev/tflite_semnasnet_100-7c780429.pth?dl=1',
+    'semnasnet_140': None,
     'mnasnet_small': None,
-    'mobilenetv1_1_00': None,
-    'mobilenetv2_1_00': None,
-    'chamnetv1_1_00': None,
-    'chamnetv2_1_00': None,
-    'fbnetc_1_00': None,
-    'spnasnet1_00': 'https://www.dropbox.com/s/iieopt18rytkgaa/spnasnet1_00-048bc3f4.pth?dl=1',
+    'mobilenetv1_100': None,
+    'mobilenetv2_100': None,
+    'mobilenetv3_050': None,
+    'mobilenetv3_075': None,
+    'mobilenetv3_100': None,
+    'chamnetv1_100': None,
+    'chamnetv2_100': None,
+    'fbnetc_100': None,
+    'spnasnet_100': 'https://www.dropbox.com/s/iieopt18rytkgaa/spnasnet_100-048bc3f4.pth?dl=1',
 }
 
 
@@ -53,8 +56,7 @@ class GenMobileNet(nn.Module):
     """ Generic Mobile Net
 
     An implementation of mobile optimized networks that covers:
-      * MobileNet-V1
-      * MobileNet-V2
+      * MobileNet V1, V2, and V3
       * MNASNet A1, B1, and small
       * FBNet C (TBD A and B)
       * ChamNet (arch details are murky)
@@ -64,8 +66,8 @@ class GenMobileNet(nn.Module):
     def __init__(self, block_args, num_classes=1000, in_chans=3, stem_size=32, num_features=1280,
                  depth_multiplier=1.0, depth_divisor=8, min_depth=None,
                  bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT,
-                 drop_rate=0., act_fn=F.relu, skip_head_conv=False,
-                 weight_init='goog', folded_bn=False, padding_same=False):
+                 drop_rate=0., act_fn=F.relu, se_gate_fn=torch.sigmoid, se_reduce_mid=False,
+                 head_conv='default', weight_init='goog', folded_bn=False, padding_same=False):
         super(GenMobileNet, self).__init__()
         self.drop_rate = drop_rate
         self.act_fn = act_fn
@@ -79,18 +81,22 @@ class GenMobileNet(nn.Module):
 
         builder = MobilenetBuilder(
             depth_multiplier, depth_divisor, min_depth,
+            act_fn, se_gate_fn, se_reduce_mid,
             bn_momentum, bn_eps, folded_bn, padding_same)
         self.blocks = nn.Sequential(*builder(in_chs, block_args))
         in_chs = builder.in_chs
 
-        if skip_head_conv:
+        if not head_conv or head_conv == 'none':
+            self.efficient_head = False
             self.conv_head = None
             assert in_chs == num_features
         else:
+            self.efficient_head = head_conv == 'efficient'
             self.conv_head = sconv2d(
                 in_chs, num_features, 1,
-                padding=padding_arg(0, padding_same), bias=folded_bn)
-            self.bn2 = None if folded_bn else nn.BatchNorm2d(num_features, momentum=bn_momentum, eps=bn_eps)
+                padding=padding_arg(0, padding_same), bias=folded_bn and not self.efficient_head)
+            self.bn2 = None if (folded_bn or self.efficient_head) else \
+                nn.BatchNorm2d(num_features, momentum=bn_momentum, eps=bn_eps)
 
         self.classifier = nn.Linear(num_features, num_classes)
 
@@ -106,16 +112,22 @@ class GenMobileNet(nn.Module):
             x = self.bn1(x)
         x = self.act_fn(x)
         x = self.blocks(x)
-        if self.conv_head is not None:
+        if self.efficient_head:
+            x = F.adaptive_avg_pool2d(x, 1)
             x = self.conv_head(x)
-            if self.bn2 is not None:
-                x = self.bn2(x)
+            # no BN
             x = self.act_fn(x)
+        else:
+            if self.conv_head is not None:
+                x = self.conv_head(x)
+                if self.bn2 is not None:
+                    x = self.bn2(x)
+                x = self.act_fn(x)
+            x = F.adaptive_avg_pool2d(x, 1)
         return x
 
     def forward(self, x):
         x = self.features(x)
-        x = F.adaptive_avg_pool2d(x, 1)
         x = x.view(x.size(0), -1)
         if self.drop_rate > 0.:
             x = F.dropout(x, p=self.drop_rate, training=self.training)
@@ -313,7 +325,7 @@ def _gen_mobilenet_v1(depth_multiplier, num_classes=1000, **kwargs):
         bn_momentum=bn_momentum,
         bn_eps=bn_eps,
         act_fn=F.relu6,
-        skip_head_conv=True,
+        head_conv='none',
         **kwargs
         )
     return model
@@ -344,6 +356,54 @@ def _gen_mobilenet_v2(depth_multiplier, num_classes=1000, **kwargs):
         bn_momentum=bn_momentum,
         bn_eps=bn_eps,
         act_fn=F.relu6,
+        **kwargs
+    )
+    return model
+
+
+def _gen_mobilenet_v3(depth_multiplier, num_classes=1000, **kwargs):
+    """Creates a MobileNet-V3 model.
+
+    Ref impl: ?
+    Paper: https://arxiv.org/abs/1905.02244
+
+    Args:
+      depth_multiplier: multiplier to number of channels per layer.
+    """
+    arch_def = [
+        # stage 0, 112x112 in
+        ['ds_r1_k3_s1_e1_c16_are_noskip'],  # relu
+        # stage 1, 112x112 in
+        ['ir_r1_k3_s2_e4_c24_are', 'ir_r1_k3_s1_e3_c24_are'],  # relu
+        # stage 2, 56x56 in
+        ['ir_r3_k5_s2_e3_c40_se0.25_are'],  # relu
+        # stage 3, 28x28 in
+        # FIXME are expansions here correct?
+        ['ir_r1_k3_s2_e6_c80', 'ir_r1_k3_s1_e2.5_c80', 'ir_r2_k3_s1_e2.3_c80'],  # hard-swish
+        # stage 4, 14x14in
+        ['ir_r2_k3_s1_e6_c112_se0.25'],  # hard-swish
+        # stage 5, 14x14in
+        # FIXME paper has a mistaken block-stride pattern 1-2-1 that doesn't fit the usual 2-1-..., ignoring
+        # The paper numbers result in an exp factor of 4.2 in the middle of this block, but keeping at 6
+        # results in a param count closer to 5.4m
+        ['ir_r1_k5_s2_e6_c160_se0.25', 'ir_r1_k5_s1_e6_c160_se0.25', 'ir_r1_k5_s1_e6_c160_se0.25'],  # hard-swish
+        # stage 6, 7x7 in
+        ['cn_r1_k1_s1_c960'],  # hard-swish
+    ]
+    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
+    model = GenMobileNet(
+        arch_def,
+        num_classes=num_classes,
+        stem_size=16,
+        depth_multiplier=depth_multiplier,
+        depth_divisor=8,
+        min_depth=None,
+        bn_momentum=bn_momentum,
+        bn_eps=bn_eps,
+        act_fn=hard_swish,
+        se_gate_fn=hard_sigmoid,
+        se_reduce_mid=True,
+        head_conv='efficient',
         **kwargs
     )
     return model
@@ -488,89 +548,89 @@ def _gen_spnasnet(depth_multiplier, num_classes=1000, **kwargs):
     return model
 
 
-def mnasnet0_50(pretrained=False, **kwargs):
+def mnasnet_050(pretrained=False, **kwargs):
     """ MNASNet B1, depth multiplier of 0.5. """
     model = _gen_mnasnet_b1(0.5, **kwargs)
     if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet0_50']))
+        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_050']))
     return model
 
 
-def mnasnet0_75(pretrained=False, **kwargs):
+def mnasnet_075(pretrained=False, **kwargs):
     """ MNASNet B1, depth multiplier of 0.75. """
     model = _gen_mnasnet_b1(0.75, **kwargs)
     if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet0_75']))
+        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_075']))
     return model
 
 
-def mnasnet1_00(pretrained=False, **kwargs):
+def mnasnet_100(pretrained=False, **kwargs):
     """ MNASNet B1, depth multiplier of 1.0. """
     model = _gen_mnasnet_b1(1.0, **kwargs)
     if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet1_00']))
+        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_100']))
     return model
 
 
-def tflite_mnasnet1_00(pretrained=False, **kwargs):
+def tflite_mnasnet_100(pretrained=False, **kwargs):
     """ MNASNet B1, depth multiplier of 1.0. """
     # these two args are for compat with tflite pretrained weights
     kwargs['folded_bn'] = True
     kwargs['padding_same'] = True
     model = _gen_mnasnet_b1(1.0, **kwargs)
     if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['tflite_mnasnet1_00']))
+        model.load_state_dict(load_state_dict_from_url(model_urls['tflite_mnasnet_100']))
     return model
 
 
-def mnasnet1_40(pretrained=False, **kwargs):
+def mnasnet_140(pretrained=False, **kwargs):
     """ MNASNet B1,  depth multiplier of 1.4 """
     model = _gen_mnasnet_b1(1.4, **kwargs)
     if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet1_40']))
+        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_140']))
     return model
 
 
-def semnasnet0_50(pretrained=False, **kwargs):
+def semnasnet_050(pretrained=False, **kwargs):
     """ MNASNet A1 (w/ SE), depth multiplier of 0.5 """
     model = _gen_mnasnet_a1(0.5, **kwargs)
     if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet0_50']))
+        model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet_050']))
     return model
 
 
-def semnasnet0_75(pretrained=False, **kwargs):
+def semnasnet_075(pretrained=False, **kwargs):
     """ MNASNet A1 (w/ SE),  depth multiplier of 0.75. """
     model = _gen_mnasnet_a1(0.75, **kwargs)
     if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet0_75']))
+        model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet_075']))
     return model
 
 
-def semnasnet1_00(pretrained=False, **kwargs):
+def semnasnet_100(pretrained=False, **kwargs):
     """ MNASNet A1 (w/ SE), depth multiplier of 1.0. """
     model = _gen_mnasnet_a1(1.0, **kwargs)
     if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet1_00']))
+        model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet_100']))
     return model
 
 
-def tflite_semnasnet1_00(pretrained=False, **kwargs):
+def tflite_semnasnet_100(pretrained=False, **kwargs):
     """ MNASNet A1, depth multiplier of 1.0. """
     # these two args are for compat with tflite pretrained weights
     kwargs['folded_bn'] = True
     kwargs['padding_same'] = True
     model = _gen_mnasnet_a1(1.0, **kwargs)
     if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['tflite_semnasnet1_00']))
+        model.load_state_dict(load_state_dict_from_url(model_urls['tflite_semnasnet_100']))
     return model
 
 
-def semnasnet1_40(pretrained=False, **kwargs):
+def semnasnet_140(pretrained=False, **kwargs):
     """ MNASNet A1 (w/ SE), depth multiplier of 1.4. """
     model = _gen_mnasnet_a1(1.4, **kwargs)
     if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet1_40']))
+        model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet_140']))
     return model
 
 
@@ -582,49 +642,73 @@ def mnasnet_small(pretrained=False, **kwargs):
     return model
 
 
-def mobilenetv1_1_00(pretrained=False, **kwargs):
+def mobilenetv1_100(pretrained=False, **kwargs):
     """ MobileNet V1 """
     model = _gen_mobilenet_v1(1.0, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv1_1_00']))
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv1_100']))
     return model
 
 
-def mobilenetv2_1_00(pretrained=False, **kwargs):
+def mobilenetv2_100(pretrained=False, **kwargs):
     """ MobileNet V2 """
     model = _gen_mobilenet_v2(1.0, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv2_1_00']))
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv2_100']))
     return model
 
 
-def fbnetc_1_00(pretrained=False, **kwargs):
+def mobilenetv3_050(num_classes, in_chans=3, pretrained=False, **kwargs):
+    """ MobileNet V3 """
+    model = _gen_mobilenet_v3(0.5, num_classes=num_classes, in_chans=in_chans, **kwargs)
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv3_050']))
+    return model
+
+
+def mobilenetv3_075(num_classes, in_chans=3, pretrained=False, **kwargs):
+    """ MobileNet V3 """
+    model = _gen_mobilenet_v3(0.75, num_classes=num_classes, in_chans=in_chans, **kwargs)
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv3_075']))
+    return model
+
+
+def mobilenetv3_100(num_classes, in_chans=3, pretrained=False, **kwargs):
+    """ MobileNet V3 """
+    model = _gen_mobilenet_v3(1.0, num_classes=num_classes, in_chans=in_chans, **kwargs)
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv3_100']))
+    return model
+
+
+def fbnetc_100(pretrained=False, **kwargs):
     """ FBNet-C """
     model = _gen_fbnetc(1.0, **kwargs)
     if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['fbnetc_1_00']))
+        model.load_state_dict(load_state_dict_from_url(model_urls['fbnetc_100']))
     return model
 
 
-def chamnetv1_1_00(pretrained=False, **kwargs):
+def chamnetv1_100(pretrained=False, **kwargs):
     """ ChamNet """
     model = _gen_chamnet_v1(1.0, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['chamnetv1_1_00']))
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['chamnetv1_100']))
     return model
 
 
-def chamnetv2_1_00(pretrained=False, **kwargs):
+def chamnetv2_100(pretrained=False, **kwargs):
     """ ChamNet """
     model = _gen_chamnet_v2(1.0, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['chamnetv2_1_00']))
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['chamnetv2_100']))
     return model
 
 
-def spnasnet1_00(pretrained=False, **kwargs):
+def spnasnet_100(pretrained=False, **kwargs):
     """ Single-Path NAS Pixel1"""
     model = _gen_spnasnet(1.0, **kwargs)
     if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['spnasnet1_00']))
+        model.load_state_dict(load_state_dict_from_url(model_urls['spnasnet_100']))
     return model

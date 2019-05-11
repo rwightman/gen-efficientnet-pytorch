@@ -41,3 +41,8 @@ def sconv2d(in_chs, out_chs, kernel_size, **kwargs):
 
 def padding_arg(default, padding_same=False):
     return 'SAME' if padding_same else default
+
+
+def get_padding(kernel_size, stride, dilation=1):
+    padding = ((stride - 1) + dilation * (kernel_size - 1)) // 2
+    return padding

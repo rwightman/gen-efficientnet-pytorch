@@ -26,6 +26,37 @@ def round_channels(channels, depth_multiplier=1.0, depth_divisor=8, min_depth=No
     return new_channels
 
 
+def hard_swish(x):
+    return x * F.relu6(x + 3.) / 6.
+
+
+def hard_sigmoid(x):
+    return F.relu6(x + 3.) / 6.
+
+
+class ConvBnAct(nn.Module):
+    def __init__(self, in_chs, out_chs, kernel_size,
+                 stride=1, act_fn=F.relu,
+                 bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT,
+                 folded_bn=False, padding_same=False):
+        super(ConvBnAct, self).__init__()
+        assert stride in [1, 2]
+        self.act_fn = act_fn
+        padding = padding_arg(get_padding(kernel_size, stride), padding_same)
+
+        self.conv = sconv2d(
+            in_chs, out_chs, kernel_size,
+            stride=stride, padding=padding, bias=folded_bn)
+        self.bn1 = None if folded_bn else nn.BatchNorm2d(out_chs, momentum=bn_momentum, eps=bn_eps)
+
+    def forward(self, x):
+        x = self.conv(x)
+        if self.bn1 is not None:
+            x = self.bn1(x)
+        x = self.act_fn(x)
+        return x
+
+
 class DepthwiseSeparableConv(nn.Module):
     def __init__(self, in_chs, out_chs, kernel_size,
                  stride=1, act_fn=F.relu, noskip=False, pw_act=False,
@@ -65,20 +96,20 @@ class DepthwiseSeparableConv(nn.Module):
         return x
 
 
-class CascadeConv3x3(nn.Sequential):
-    # FIXME lifted from maskrcnn_benchmark blocks, haven't used yet
-    def __init__(self, in_chs, out_chs, stride, act_fn=F.relu, noskip=False,
+class CascadeConv(nn.Sequential):
+    # FIXME haven't tested yet
+    def __init__(self, in_chs, out_chs, kernel_size=3, stride=1, act_fn=F.relu, noskip=False,
                  bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT,
                  folded_bn=False, padding_same=False):
-        super(CascadeConv3x3, self).__init__()
+        super(CascadeConv, self).__init__()
         assert stride in [1, 2]
         self.has_residual = (stride == 1 and in_chs == out_chs) and not noskip
         self.act_fn = act_fn
         padding = padding_arg(1, padding_same)
 
-        self.conv1 = sconv2d(in_chs, in_chs, 3, stride=stride, padding=padding, bias=folded_bn)
+        self.conv1 = sconv2d(in_chs, in_chs, kernel_size, stride=stride, padding=padding, bias=folded_bn)
         self.bn1 = None if folded_bn else nn.BatchNorm2d(in_chs, momentum=bn_momentum, eps=bn_eps)
-        self.conv2 = sconv2d(in_chs, out_chs, 3, stride=1, padding=padding, bias=folded_bn)
+        self.conv2 = sconv2d(in_chs, out_chs, kernel_size, stride=1, padding=padding, bias=folded_bn)
         self.bn2 = None if folded_bn else nn.BatchNorm2d(out_chs, momentum=bn_momentum, eps=bn_eps)
 
     def forward(self, x):
@@ -96,7 +127,7 @@ class CascadeConv3x3(nn.Sequential):
 
 
 class ChannelShuffle(nn.Module):
-    # FIXME lifted from maskrcnn_benchmark blocks, haven't used yet
+    # FIXME haven't tested yet
     def __init__(self, groups):
         super(ChannelShuffle, self).__init__()
         self.groups = groups
@@ -117,9 +148,10 @@ class ChannelShuffle(nn.Module):
 
 
 class SqueezeExcite(nn.Module):
-    def __init__(self, in_chs, reduce_chs=None, act_fn=F.relu):
+    def __init__(self, in_chs, reduce_chs=None, act_fn=F.relu, gate_fn=torch.sigmoid):
         super(SqueezeExcite, self).__init__()
         self.act_fn = act_fn
+        self.gate_fn = gate_fn
         reduced_chs = reduce_chs or in_chs
         self.conv_reduce = nn.Conv2d(in_chs, reduced_chs, 1, bias=True)
         self.conv_expand = nn.Conv2d(reduced_chs, in_chs, 1, bias=True)
@@ -130,7 +162,7 @@ class SqueezeExcite(nn.Module):
         x_se = self.conv_reduce(x_se)
         x_se = self.act_fn(x_se)
         x_se = self.conv_expand(x_se)
-        x = torch.sigmoid(x_se) * x
+        x = x * self.gate_fn(x_se)
         return x
 
 
@@ -139,7 +171,8 @@ class InvertedResidual(nn.Module):
 
     def __init__(self, in_chs, out_chs, kernel_size,
                  stride=1, act_fn=F.relu, exp_ratio=1.0, noskip=False,
-                 se_ratio=0., shuffle_type=None, pw_group=1,
+                 se_ratio=0., se_reduce_mid=False, se_gate_fn=torch.sigmoid,
+                 shuffle_type=None, pw_group=1,
                  bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT,
                  folded_bn=False, padding_same=False):
         super(InvertedResidual, self).__init__()
@@ -165,7 +198,9 @@ class InvertedResidual(nn.Module):
 
         # Squeeze-and-excitation
         if self.has_se:
-            self.se = SqueezeExcite(mid_chs, reduce_chs=max(1, int(in_chs * se_ratio)))
+            se_base_chs = mid_chs if se_reduce_mid else in_chs
+            self.se = SqueezeExcite(mid_chs, reduce_chs=max(1, int(se_base_chs * se_ratio)),
+                                    act_fn=act_fn, gate_fn=se_gate_fn)
 
         # Point-wise linear projection
         self.conv_pwl = sconv2d(mid_chs, out_chs, 1, padding=pw_padding, groups=pw_group, bias=folded_bn)
@@ -219,11 +254,15 @@ class MobilenetBuilder:
     """
 
     def __init__(self, depth_multiplier=1.0, depth_divisor=8, min_depth=None,
+                 act_fn=None, se_gate_fn=torch.sigmoid, se_reduce_mid=False,
                  bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT,
                  folded_bn=False, padding_same=False, verbose=False):
         self.depth_multiplier = depth_multiplier
         self.depth_divisor = depth_divisor
         self.min_depth = min_depth
+        self.act_fn = act_fn
+        self.se_gate_fn = se_gate_fn
+        self.se_reduce_mid = se_reduce_mid
         self.bn_momentum = bn_momentum
         self.bn_eps = bn_eps
         self.folded_bn = folded_bn
@@ -242,13 +281,19 @@ class MobilenetBuilder:
         ba['bn_eps'] = self.bn_eps
         ba['folded_bn'] = self.folded_bn
         ba['padding_same'] = self.padding_same
+        # block act fn overrides the model default
+        ba['act_fn'] = ba['act_fn'] if ba['act_fn'] is not None else self.act_fn
         #  NOTE: could replace this with lambdas or functools binding if variety increases
         if bt == 'ir':
+            ba['se_gate_fn'] = self.se_gate_fn
+            ba['se_reduce_mid'] = self.se_reduce_mid
             block = InvertedResidual(**ba)
         elif bt == 'ds' or bt == 'dsa':
             block = DepthwiseSeparableConv(**ba)
         elif bt == 'ca':
-            block = CascadeConv3x3(**ba)
+            block = CascadeConv(**ba)
+        elif bt == 'cn':
+            block = ConvBnAct(**ba)
         else:
             assert False, 'Uknkown block type (%s) while building model.' % bt
         self.in_chs = ba['out_chs']  # update in_chs for arg of next block
@@ -309,6 +354,7 @@ def _decode_block_str(block_str):
     e - expansion ratio,
     c - output channels,
     se - squeeze/excitation ratio
+    a - activation fn ('re', 'r6', or 'hs')
     Args:
         block_str: a string representation of block arguments.
     Returns:
@@ -321,13 +367,33 @@ def _decode_block_str(block_str):
     block_type = ops[0]  # take the block type off the front
     ops = ops[1:]
     options = {}
+    noskip = False
     for op in ops:
-        splits = re.split(r'(\d.*)', op)
-        if len(splits) >= 2:
-            key, value = splits[:2]
+        # string options being checked on individual basis, combine if they grow
+        if op.startswith('a'):
+            # activation fn
+            key = op[0]
+            v = op[1:]
+            if v == 're':
+                value = F.relu
+            elif v == 'r6':
+                value = F.relu6
+            elif v == 'hs':
+                value = hard_swish
+            else:
+                continue
             options[key] = value
+        elif op == 'noskip':
+            noskip = True
+        else:
+            # all numeric options
+            splits = re.split(r'(\d.*)', op)
+            if len(splits) >= 2:
+                key, value = splits[:2]
+                options[key] = value
 
-    # FIXME validate args and throw
+    # if act_fn is None, the model default (passed to model init) will be used
+    act_fn = options['a'] if 'a' in options else None
 
     num_repeat = int(options['r'])
     # each type of block has different valid arguments, fill accordingly
@@ -336,30 +402,42 @@ def _decode_block_str(block_str):
             block_type=block_type,
             kernel_size=int(options['k']),
             out_chs=int(options['c']),
-            exp_ratio=int(options['e']),
+            exp_ratio=float(options['e']),
             se_ratio=float(options['se']) if 'se' in options else None,
             stride=int(options['s']),
-            noskip=('noskip' in block_str),
+            act_fn=act_fn,
+            noskip=noskip,
         )
         if 'g' in options:
             block_args['pw_group'] = options['g']
             if options['g'] > 1:
                 block_args['shuffle_type'] = 'mid'
-    elif block_type == 'ca':
-        block_args = dict(
-            block_type=block_type,
-            out_chs=int(options['c']),
-            stride=int(options['s']),
-            noskip=('noskip' in block_str),
-        )
     elif block_type == 'ds' or block_type == 'dsa':
         block_args = dict(
             block_type=block_type,
             kernel_size=int(options['k']),
             out_chs=int(options['c']),
             stride=int(options['s']),
-            noskip=block_type == 'dsa' or 'noskip' in block_str,
+            act_fn=act_fn,
+            noskip=block_type == 'dsa' or noskip,
             pw_act=block_type == 'dsa',
+        )
+    elif block_type == 'ca':
+        block_args = dict(
+            block_type=block_type,
+            kernel_size=int(options['k']),
+            out_chs=int(options['c']),
+            stride=int(options['s']),
+            act_fn=act_fn,
+            noskip=noskip,
+        )
+    elif block_type == 'cn':
+        block_args = dict(
+            block_type=block_type,
+            kernel_size=int(options['k']),
+            out_chs=int(options['c']),
+            stride=int(options['s']),
+            act_fn=act_fn,
         )
     else:
         assert False, 'Unknown block type (%s)' % block_type
