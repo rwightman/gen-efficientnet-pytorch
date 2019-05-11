@@ -1,7 +1,8 @@
 # PyTorch Generic MobileNet
 
-A 'generic' implementation of MobileNets that covers most of the architectures derived from the MobileNet V1/V2 block sequence, including those found via automated neural architecture search.
+A 'generic' implementation of MobileNets that covers most of the architectures derived from the MobileNet V1/V2 block sequence, including those found via automated neural architecture search. All models are implemented by the same class, with string based architecture definitions to configure the block layouts (idea from [here](https://github.com/tensorflow/tpu/blob/master/models/official/mnasnet/mnasnet_models.py))
 
+## Models
 
 Implemented models include:
 * MNASNet B1, A1 (Squeeze-Excite), and Small
@@ -42,4 +43,4 @@ Enabling the Tensorflow preprocessing pipeline with `--tf-preprocessing` at vali
 ## TODO
 * Train more models with better results
 * Exported model validation in Caffe2
-* More models
+* More models (ShuffleNetV2)
