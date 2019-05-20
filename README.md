@@ -17,7 +17,7 @@ I originally implemented and trained some these models with code [here](https://
 
 ## Pretrained
 
-I've attempted to train some of these models, decent results below. I've found it fairly challenging to get stated (paper) accuracy for most of these models. Other implementations in PyTorch appear to mirror these difficulties.
+I've attempted to train some of these models, decent results below. I've found it fairly challenging to get stated (paper) accuracy for most of these models. Other implementations in PyTorch appear to mirror these difficulties. My training code is here: https://github.com/rwightman/pytorch-image-models
 
 
 |Model | Prec@1 (Err) | Prec@5 (Err) | Param # | Image Scaling  |
