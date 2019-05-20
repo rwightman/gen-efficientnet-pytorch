@@ -5,12 +5,13 @@ A 'generic' implementation of MobileNets that covers most of the architectures d
 ## Models
 
 Implemented models include:
-* MNASNet B1, A1 (Squeeze-Excite), and Small
-* MobileNet-V1
-* MobileNet-V2
-* MobileNet-V3 (work in progress, validating config)
-* ChamNet (details hard to find, currently an educated guess)
-* FBNet-C (TODO A/B variants)
+  * MNASNet B1, A1 (Squeeze-Excite), and Small (https://arxiv.org/abs/1807.11626)
+  * MobileNet-V1 (https://arxiv.org/abs/1704.04861)
+  * MobileNet-V2 (https://arxiv.org/abs/1801.04381)
+  * MobileNet-V3 (https://arxiv.org/abs/1905.02244) -- work in progress, validating config
+  * ChamNet (https://arxiv.org/abs/1812.08934) -- specific arch details hard to find, currently an educated guess
+  * FBNet-C (https://arxiv.org/abs/1812.03443) -- TODO A/B variants
+  * Single-Path NAS (https://arxiv.org/abs/1904.02877) -- pixel1 variant
     
 I originally implemented and trained some these models with code [here](https://github.com/rwightman/pytorch-image-models), this repository contains just the GenMobileNet models, validation, and associated ONNX/Caffe2 export code. 
 
