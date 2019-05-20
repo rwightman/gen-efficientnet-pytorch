@@ -47,7 +47,7 @@ model_urls = {
     'mobilenetv3_100': None,
     'chamnetv1_100': None,
     'chamnetv2_100': None,
-    'fbnetc_100': None,
+    'fbnetc_100': 'https://www.dropbox.com/s/0ku2tztuibrynld/fbnetc_100-f49a0c5f.pth?dl=1',
     'spnasnet_100': 'https://www.dropbox.com/s/iieopt18rytkgaa/spnasnet_100-048bc3f4.pth?dl=1',
 }
 
@@ -680,6 +680,9 @@ def mobilenetv3_100(num_classes, in_chans=3, pretrained=False, **kwargs):
 
 def fbnetc_100(pretrained=False, **kwargs):
     """ FBNet-C """
+    if pretrained:
+        # pretrained model trained with non-default BN epsilon
+        kwargs['bn_eps'] = 1e-3
     model = _gen_fbnetc(1.0, **kwargs)
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['fbnetc_100']))

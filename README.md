@@ -21,6 +21,7 @@ I've attempted to train some of these models, decent results below. I've found i
 
 |Model | Prec@1 (Err) | Prec@5 (Err) | Param # | Image Scaling  |
 |---|---|---|---|---|
+| FBNet-C | 74.830 (25.170 | 92.124 (7.876) | 5.6M | bilinear |
 | Single-Path NASNet 1.00 | 74.084 (25.916)  | 91.818 (8.182) | 4.42M | bilinear |
 
 More pretrained models to come...
