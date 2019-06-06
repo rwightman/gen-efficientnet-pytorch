@@ -65,7 +65,9 @@ def resolve_data_config(model, args, default_cfg={}, verbose=True):
 
     # resolve default crop percentage
     new_config['crop_pct'] = DEFAULT_CROP_PCT
-    if 'crop_pct' in default_cfg:
+    if args.crop_pct is not None:
+        new_config['crop_pct'] = args.crop_pct
+    elif 'crop_pct' in default_cfg:
         new_config['crop_pct'] = default_cfg['crop_pct']
 
     if verbose:

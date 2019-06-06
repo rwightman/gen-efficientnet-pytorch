@@ -1,15 +1,13 @@
-""" Generic MobileNet
+""" Generic Efficient Networks
 
 A generic MobileNet class with building blocks to support a variety of models:
+* EfficientNet (B0-B4 + Tensorflow pretrained ports)
 * MNasNet B1, A1 (SE), Small
-* MobileNetV2
+* MobileNet V1, V2, and V3
 * FBNet-C (TODO A & B)
 * ChamNet (TODO still guessing at architecture definition)
 * Single-Path NAS Pixel1
-* ShuffleNetV2 (TODO add IR shuffle block)
 * And likely more...
-
-TODO not all combinations and variations have been tested. Currently working on training hyper-params...
 
 Hacked together by Ross Wightman
 """
@@ -22,10 +20,13 @@ import torch.nn.functional as F
 from genmobilenet.helpers import load_state_dict_from_url
 from genmobilenet.mobilenet_builder import *
 
-__all__ = ['GenMobileNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_140',
+__all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_140',
            'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'semnasnet_140', 'mnasnet_small',
-           'mobilenetv1_100', 'mobilenetv2_100', 'chamnetv1_100', 'chamnetv2_100',
-           'fbnetc_100', 'spnasnet_100']
+           'tflite_mnasnet_100', 'tflite_semnasnet_100', 'mobilenetv1_100', 'mobilenetv2_100',
+           'mobilenetv3_050', 'mobilenetv3_075', 'mobilenetv3_100', 'chamnetv1_100', 'chamnetv2_100',
+           'fbnetc_100', 'spnasnet_100', 'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2',
+           'efficientnet_b3', 'efficientnet_b4', 'tf_efficientnet_b0', 'tf_efficientnet_b1',
+           'tf_efficientnet_b2', 'tf_efficientnet_b3']
 
 
 model_urls = {
@@ -44,35 +45,53 @@ model_urls = {
     'mobilenetv2_100': None,
     'mobilenetv3_050': None,
     'mobilenetv3_075': None,
-    'mobilenetv3_100': None,
+    'mobilenetv3_100':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mobilenetv3_100-35495452.pth',
     'chamnetv1_100': None,
     'chamnetv2_100': None,
-    'fbnetc_100': 'https://www.dropbox.com/s/0ku2tztuibrynld/fbnetc_100-f49a0c5f.pth?dl=1',
-    'spnasnet_100': 'https://www.dropbox.com/s/iieopt18rytkgaa/spnasnet_100-048bc3f4.pth?dl=1',
+    'fbnetc_100':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/fbnetc_100-c345b898.pth',
+    'spnasnet_100':
+        'https://www.dropbox.com/s/iieopt18rytkgaa/spnasnet_100-048bc3f4.pth?dl=1',
+    'efficientnet_b0': None,
+    'efficientnet_b1': None,
+    'efficientnet_b2': None,
+    'efficientnet_b3': None,
+    'efficientnet_b4': None,
+    'tf_efficientnet_b0':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b0-0af12548.pth',
+    'tf_efficientnet_b1':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b1-5c1377c4.pth',
+    'tf_efficientnet_b2':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b2-e393ef04.pth',
+    'tf_efficientnet_b3':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b3-e3bd6955.pth',
+
 }
 
 
-class GenMobileNet(nn.Module):
-    """ Generic Mobile Net
+class GenEfficientNet(nn.Module):
+    """ Generic Efficent Networks
 
     An implementation of mobile optimized networks that covers:
+      * EfficientNet
       * MobileNet V1, V2, and V3
       * MNASNet A1, B1, and small
-      * FBNet C (TBD A and B)
-      * ChamNet (arch details are murky)
+      * FBNet C
+      * ChamNet
       * Single-Path NAS Pixel1
     """
 
     def __init__(self, block_args, num_classes=1000, in_chans=3, stem_size=32, num_features=1280,
-                 depth_multiplier=1.0, depth_divisor=8, min_depth=None,
-                 bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT,
-                 drop_rate=0., act_fn=F.relu, se_gate_fn=torch.sigmoid, se_reduce_mid=False,
+                 channel_multiplier=1.0, channel_divisor=8, channel_min=None,
+                 bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT, drop_rate=0.,
+                 drop_connect_rate=0., act_fn=F.relu, se_gate_fn=torch.sigmoid, se_reduce_mid=False,
                  head_conv='default', weight_init='goog', folded_bn=False, padding_same=False):
-        super(GenMobileNet, self).__init__()
+        super(GenEfficientNet, self).__init__()
         self.drop_rate = drop_rate
         self.act_fn = act_fn
 
-        stem_size = round_channels(stem_size, depth_multiplier, depth_divisor, min_depth)
+        stem_size = round_channels(stem_size, channel_multiplier, channel_divisor, channel_min)
         self.conv_stem = sconv2d(
             in_chans, stem_size, 3,
             padding=padding_arg(1, padding_same), stride=2, bias=folded_bn)
@@ -80,8 +99,8 @@ class GenMobileNet(nn.Module):
         in_chs = stem_size
 
         builder = MobilenetBuilder(
-            depth_multiplier, depth_divisor, min_depth,
-            act_fn, se_gate_fn, se_reduce_mid,
+            channel_multiplier, channel_divisor, channel_min,
+            drop_connect_rate, act_fn, se_gate_fn, se_reduce_mid,
             bn_momentum, bn_eps, folded_bn, padding_same)
         self.blocks = nn.Sequential(*builder(in_chs, block_args))
         in_chs = builder.in_chs
@@ -214,13 +233,13 @@ def _gen_mnasnet_a1(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r1_k3_s1_e6_c320'],
     ]
     bn_momentum, bn_eps = _resolve_bn_params(kwargs)
-    model = GenMobileNet(
-        arch_def,
+    model = GenEfficientNet(
+        decode_arch_def(arch_def),
         num_classes=num_classes,
         stem_size=32,
-        depth_multiplier=depth_multiplier,
-        depth_divisor=8,
-        min_depth=None,
+        channel_multiplier=depth_multiplier,
+        channel_divisor=8,
+        channel_min=None,
         bn_momentum=bn_momentum,
         bn_eps=bn_eps,
         **kwargs
@@ -254,13 +273,13 @@ def _gen_mnasnet_b1(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r1_k3_s1_e6_c320_noskip']
     ]
     bn_momentum, bn_eps = _resolve_bn_params(kwargs)
-    model = GenMobileNet(
-        arch_def,
+    model = GenEfficientNet(
+        decode_arch_def(arch_def),
         num_classes=num_classes,
         stem_size=32,
-        depth_multiplier=depth_multiplier,
-        depth_divisor=8,
-        min_depth=None,
+        channel_multiplier=depth_multiplier,
+        channel_divisor=8,
+        channel_min=None,
         bn_momentum=bn_momentum,
         bn_eps=bn_eps,
         **kwargs
@@ -287,13 +306,13 @@ def _gen_mnasnet_small(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r1_k3_s1_e6_c144']
     ]
     bn_momentum, bn_eps = _resolve_bn_params(kwargs)
-    model = GenMobileNet(
-        arch_def,
+    model = GenEfficientNet(
+        decode_arch_def(arch_def),
         num_classes=num_classes,
         stem_size=8,
-        depth_multiplier=depth_multiplier,
-        depth_divisor=8,
-        min_depth=None,
+        channel_multiplier=depth_multiplier,
+        channel_divisor=8,
+        channel_min=None,
         bn_momentum=bn_momentum,
         bn_eps=bn_eps,
         **kwargs
@@ -314,14 +333,14 @@ def _gen_mobilenet_v1(depth_multiplier, num_classes=1000, **kwargs):
         ['dsa_r2_k3_s2_c1024'],
     ]
     bn_momentum, bn_eps = _resolve_bn_params(kwargs)
-    model = GenMobileNet(
-        arch_def,
+    model = GenEfficientNet(
+        decode_arch_def(arch_def),
         num_classes=num_classes,
         stem_size=32,
         num_features=1024,
-        depth_multiplier=depth_multiplier,
-        depth_divisor=8,
-        min_depth=None,
+        channel_multiplier=depth_multiplier,
+        channel_divisor=8,
+        channel_min=None,
         bn_momentum=bn_momentum,
         bn_eps=bn_eps,
         act_fn=F.relu6,
@@ -346,13 +365,13 @@ def _gen_mobilenet_v2(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r1_k3_s1_e6_c320'],
     ]
     bn_momentum, bn_eps = _resolve_bn_params(kwargs)
-    model = GenMobileNet(
-        arch_def,
+    model = GenEfficientNet(
+        decode_arch_def(arch_def),
         num_classes=num_classes,
         stem_size=32,
-        depth_multiplier=depth_multiplier,
-        depth_divisor=8,
-        min_depth=None,
+        channel_multiplier=depth_multiplier,
+        channel_divisor=8,
+        channel_min=None,
         bn_momentum=bn_momentum,
         bn_eps=bn_eps,
         act_fn=F.relu6,
@@ -387,13 +406,13 @@ def _gen_mobilenet_v3(depth_multiplier, num_classes=1000, **kwargs):
         ['cn_r1_k1_s1_c960'],  # hard-swish
     ]
     bn_momentum, bn_eps = _resolve_bn_params(kwargs)
-    model = GenMobileNet(
-        arch_def,
+    model = GenEfficientNet(
+        decode_arch_def(arch_def),
         num_classes=num_classes,
         stem_size=16,
-        depth_multiplier=depth_multiplier,
-        depth_divisor=8,
-        min_depth=None,
+        channel_multiplier=depth_multiplier,
+        channel_divisor=8,
+        channel_min=None,
         bn_momentum=bn_momentum,
         bn_eps=bn_eps,
         act_fn=hard_swish,
@@ -423,14 +442,14 @@ def _gen_chamnet_v1(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r1_k3_s1_e10_c104'],
     ]
     bn_momentum, bn_eps = _resolve_bn_params(kwargs)
-    model = GenMobileNet(
-        arch_def,
+    model = GenEfficientNet(
+        decode_arch_def(arch_def),
         num_classes=num_classes,
         stem_size=32,
         num_features=1280,  # no idea what this is? try mobile/mnasnet default?
-        depth_multiplier=depth_multiplier,
-        depth_divisor=8,
-        min_depth=None,
+        channel_multiplier=depth_multiplier,
+        channel_divisor=8,
+        channel_min=None,
         bn_momentum=bn_momentum,
         bn_eps=bn_eps,
         **kwargs
@@ -456,14 +475,14 @@ def _gen_chamnet_v2(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r1_k3_s1_e6_c112'],
     ]
     bn_momentum, bn_eps = _resolve_bn_params(kwargs)
-    model = GenMobileNet(
-        arch_def,
+    model = GenEfficientNet(
+        decode_arch_def(arch_def),
         num_classes=num_classes,
         stem_size=32,
         num_features=1280,  # no idea what this is? try mobile/mnasnet default?
-        depth_multiplier=depth_multiplier,
-        depth_divisor=8,
-        min_depth=None,
+        channel_multiplier=depth_multiplier,
+        channel_divisor=8,
+        channel_min=None,
         bn_momentum=bn_momentum,
         bn_eps=bn_eps,
         **kwargs
@@ -490,14 +509,14 @@ def _gen_fbnetc(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r1_k3_s1_e6_c352'],
     ]
     bn_momentum, bn_eps = _resolve_bn_params(kwargs)
-    model = GenMobileNet(
-        arch_def,
+    model = GenEfficientNet(
+        decode_arch_def(arch_def),
         num_classes=num_classes,
         stem_size=16,
         num_features=1984,  # paper suggests this, but is not 100% clear
-        depth_multiplier=depth_multiplier,
-        depth_divisor=8,
-        min_depth=None,
+        channel_multiplier=depth_multiplier,
+        channel_divisor=8,
+        channel_min=None,
         bn_momentum=bn_momentum,
         bn_eps=bn_eps,
         **kwargs
@@ -530,15 +549,63 @@ def _gen_spnasnet(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r1_k3_s1_e6_c320_noskip']
     ]
     bn_momentum, bn_eps = _resolve_bn_params(kwargs)
-    model = GenMobileNet(
-        arch_def,
+    model = GenEfficientNet(
+        decode_arch_def(arch_def),
         num_classes=num_classes,
         stem_size=32,
-        depth_multiplier=depth_multiplier,
-        depth_divisor=8,
-        min_depth=None,
+        channel_multiplier=depth_multiplier,
+        channel_divisor=8,
+        channel_min=None,
         bn_momentum=bn_momentum,
         bn_eps=bn_eps,
+        **kwargs
+    )
+    return model
+
+
+def _gen_efficientnet(channel_multiplier=1.0, depth_multiplier=1.0, num_classes=1000, **kwargs):
+    """Creates an EfficientNet model.
+
+    Ref impl: https://github.com/tensorflow/tpu/blob/master/models/official/efficientnet/efficientnet_model.py
+    Paper: https://arxiv.org/abs/1905.11946
+
+    EfficientNet params
+    name: (channel_multiplier, depth_multiplier, resolution, dropout_rate)
+    'efficientnet-b0': (1.0, 1.0, 224, 0.2),
+    'efficientnet-b1': (1.0, 1.1, 240, 0.2),
+    'efficientnet-b2': (1.1, 1.2, 260, 0.3),
+    'efficientnet-b3': (1.2, 1.4, 300, 0.3),
+    'efficientnet-b4': (1.4, 1.8, 380, 0.4),
+    'efficientnet-b5': (1.6, 2.2, 456, 0.4),
+    'efficientnet-b6': (1.8, 2.6, 528, 0.5),
+    'efficientnet-b7': (2.0, 3.1, 600, 0.5),
+
+    Args:
+      channel_multiplier: multiplier to number of channels per layer
+      depth_multiplier: multiplier to number of repeats per stage
+
+    """
+    arch_def = [
+        ['ds_r1_k3_s1_e1_c16_se0.25'],
+        ['ir_r2_k3_s2_e6_c24_se0.25'],
+        ['ir_r2_k5_s2_e6_c40_se0.25'],
+        ['ir_r3_k3_s2_e6_c80_se0.25'],
+        ['ir_r3_k5_s1_e6_c112_se0.25'],
+        ['ir_r4_k5_s2_e6_c192_se0.25'],
+        ['ir_r1_k3_s1_e6_c320_se0.25'],
+    ]
+    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
+    model = GenEfficientNet(
+        decode_arch_def(arch_def, depth_multiplier),
+        num_classes=num_classes,
+        stem_size=32,
+        channel_multiplier=channel_multiplier,
+        channel_divisor=8,
+        channel_min=None,
+        num_features=round_channels(1280, channel_multiplier, 8, None),
+        bn_momentum=bn_momentum,
+        bn_eps=bn_eps,
+        act_fn=swish,
         **kwargs
     )
     return model
@@ -673,8 +740,8 @@ def mobilenetv3_075(num_classes, in_chans=3, pretrained=False, **kwargs):
 def mobilenetv3_100(num_classes, in_chans=3, pretrained=False, **kwargs):
     """ MobileNet V3 """
     model = _gen_mobilenet_v3(1.0, num_classes=num_classes, in_chans=in_chans, **kwargs)
-    #if pretrained:
-    #    model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv3_100']))
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv3_100']))
     return model
 
 
@@ -711,3 +778,85 @@ def spnasnet_100(pretrained=False, **kwargs):
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['spnasnet_100']))
     return model
+
+
+def efficientnet_b0(pretrained=False, **kwargs):
+    """ EfficientNet-B0 """
+    model = _gen_efficientnet(channel_multiplier=1.0, depth_multiplier=1.0, **kwargs)
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['efficientnet_b0']))
+    return model
+
+
+def efficientnet_b1(pretrained=False, **kwargs):
+    """ EfficientNet-B1 """
+    model = _gen_efficientnet(channel_multiplier=1.0, depth_multiplier=1.1, **kwargs)
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['efficientnet_b1']))
+    return model
+
+
+def efficientnet_b2(pretrained=False, **kwargs):
+    """ EfficientNet-B2 """
+    model = _gen_efficientnet(channel_multiplier=1.1, depth_multiplier=1.2, **kwargs)
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['efficientnet_b2']))
+    return model
+
+
+def efficientnet_b3(pretrained=False, **kwargs):
+    """ EfficientNet-B3 """
+    # NOTE for train, drop_rate should be 0.3
+    model = _gen_efficientnet(channel_multiplier=1.2, depth_multiplier=1.4, **kwargs)
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['efficientnet_b3']))
+    return model
+
+
+def efficientnet_b4(pretrained=False, **kwargs):
+    """ EfficientNet-B4 """
+    model = _gen_efficientnet(channel_multiplier=1.4, depth_multiplier=1.8, **kwargs)
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['efficientnet_b4']))
+    return model
+
+
+def tf_efficientnet_b0(pretrained=False, **kwargs):
+    """ EfficientNet-B0. Tensorflow compatible variant  """
+    kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
+    kwargs['padding_same'] = True
+    model = _gen_efficientnet(channel_multiplier=1.0, depth_multiplier=1.0, **kwargs)
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b0']))
+    return model
+
+
+def tf_efficientnet_b1(pretrained=False, **kwargs):
+    """ EfficientNet-B1. Tensorflow compatible variant  """
+    kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
+    kwargs['padding_same'] = True
+    model = _gen_efficientnet(channel_multiplier=1.0, depth_multiplier=1.1, **kwargs)
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b1']))
+    return model
+
+
+def tf_efficientnet_b2(pretrained=False, **kwargs):
+    """ EfficientNet-B2. Tensorflow compatible variant  """
+    kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
+    kwargs['padding_same'] = True
+    model = _gen_efficientnet(channel_multiplier=1.1, depth_multiplier=1.2, **kwargs)
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b2']))
+    return model
+
+
+def tf_efficientnet_b3(pretrained=False, **kwargs):
+    """ EfficientNet-B3. Tensorflow compatible variant """
+    kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
+    kwargs['padding_same'] = True
+    model = _gen_efficientnet(channel_multiplier=1.2, depth_multiplier=1.4, **kwargs)
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b3']))
+    return model
+

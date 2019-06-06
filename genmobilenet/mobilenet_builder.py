@@ -26,12 +26,29 @@ def round_channels(channels, depth_multiplier=1.0, depth_divisor=8, min_depth=No
     return new_channels
 
 
+def swish(x):
+    return x * torch.sigmoid(x)
+
+
 def hard_swish(x):
     return x * F.relu6(x + 3.) / 6.
 
 
 def hard_sigmoid(x):
     return F.relu6(x + 3.) / 6.
+
+
+def drop_connect(inputs, training=False, drop_connect_rate=0.):
+    """Apply drop connect."""
+    if not training:
+        return inputs
+
+    keep_prob = 1 - drop_connect_rate
+    random_tensor = keep_prob + torch.rand(
+        (inputs.size()[0], 1, 1, 1), dtype=inputs.dtype, device=inputs.device)
+    random_tensor.floor_()  # binarize
+    output = inputs.div(keep_prob) * random_tensor
+    return output
 
 
 class ConvBnAct(nn.Module):
@@ -60,13 +77,16 @@ class ConvBnAct(nn.Module):
 class DepthwiseSeparableConv(nn.Module):
     def __init__(self, in_chs, out_chs, kernel_size,
                  stride=1, act_fn=F.relu, noskip=False, pw_act=False,
+                 se_ratio=0., se_gate_fn=torch.sigmoid,
                  bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT,
-                 folded_bn=False, padding_same=False):
+                 folded_bn=False, padding_same=False, drop_connect_rate=0.):
         super(DepthwiseSeparableConv, self).__init__()
         assert stride in [1, 2]
         self.has_residual = (stride == 1 and in_chs == out_chs) and not noskip
+        self.has_se = se_ratio is not None and se_ratio > 0.
         self.has_pw_act = pw_act  # activation after point-wise conv
         self.act_fn = act_fn
+        self.drop_connect_rate = drop_connect_rate
         dw_padding = padding_arg(kernel_size // 2, padding_same)
         pw_padding = padding_arg(0, padding_same)
 
@@ -74,6 +94,11 @@ class DepthwiseSeparableConv(nn.Module):
             in_chs, in_chs, kernel_size,
             stride=stride, padding=dw_padding, groups=in_chs, bias=folded_bn)
         self.bn1 = None if folded_bn else nn.BatchNorm2d(in_chs, momentum=bn_momentum, eps=bn_eps)
+
+        if self.has_se:
+            self.se = SqueezeExcite(
+                in_chs, reduce_chs=max(1, int(in_chs * se_ratio)), act_fn=act_fn, gate_fn=se_gate_fn)
+
         self.conv_pw = sconv2d(in_chs, out_chs, 1, padding=pw_padding, bias=folded_bn)
         self.bn2 = None if folded_bn else nn.BatchNorm2d(out_chs, momentum=bn_momentum, eps=bn_eps)
 
@@ -85,6 +110,9 @@ class DepthwiseSeparableConv(nn.Module):
             x = self.bn1(x)
         x = self.act_fn(x)
 
+        if self.has_se:
+            x = self.se(x)
+
         x = self.conv_pw(x)
         if self.bn2 is not None:
             x = self.bn2(x)
@@ -92,59 +120,10 @@ class DepthwiseSeparableConv(nn.Module):
             x = self.act_fn(x)
 
         if self.has_residual:
+            if self.drop_connect_rate > 0.:
+                x = drop_connect(x, self.training, self.drop_connect_rate)
             x += residual
         return x
-
-
-class CascadeConv(nn.Sequential):
-    # FIXME haven't tested yet
-    def __init__(self, in_chs, out_chs, kernel_size=3, stride=1, act_fn=F.relu, noskip=False,
-                 bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT,
-                 folded_bn=False, padding_same=False):
-        super(CascadeConv, self).__init__()
-        assert stride in [1, 2]
-        self.has_residual = (stride == 1 and in_chs == out_chs) and not noskip
-        self.act_fn = act_fn
-        padding = padding_arg(1, padding_same)
-
-        self.conv1 = sconv2d(in_chs, in_chs, kernel_size, stride=stride, padding=padding, bias=folded_bn)
-        self.bn1 = None if folded_bn else nn.BatchNorm2d(in_chs, momentum=bn_momentum, eps=bn_eps)
-        self.conv2 = sconv2d(in_chs, out_chs, kernel_size, stride=1, padding=padding, bias=folded_bn)
-        self.bn2 = None if folded_bn else nn.BatchNorm2d(out_chs, momentum=bn_momentum, eps=bn_eps)
-
-    def forward(self, x):
-        residual = x
-        x = self.conv1(x)
-        if self.bn1 is not None:
-            x = self.bn1(x)
-        x = self.act_fn(x)
-        x = self.conv2(x)
-        if self.bn2 is not None:
-            x = self.bn2(x)
-        if self.has_residual:
-            x += residual
-        return x
-
-
-class ChannelShuffle(nn.Module):
-    # FIXME haven't tested yet
-    def __init__(self, groups):
-        super(ChannelShuffle, self).__init__()
-        self.groups = groups
-
-    def forward(self, x):
-        """Channel shuffle: [N,C,H,W] -> [N,g,C/g,H,W] -> [N,C/g,g,H,w] -> [N,C,H,W]"""
-        N, C, H, W = x.size()
-        g = self.groups
-        assert C % g == 0, "Incompatible group size {} for input channel {}".format(
-            g, C
-        )
-        return (
-            x.view(N, g, int(C / g), H, W)
-            .permute(0, 2, 1, 3, 4)
-            .contiguous()
-            .view(N, C, H, W)
-        )
 
 
 class SqueezeExcite(nn.Module):
@@ -172,24 +151,20 @@ class InvertedResidual(nn.Module):
     def __init__(self, in_chs, out_chs, kernel_size,
                  stride=1, act_fn=F.relu, exp_ratio=1.0, noskip=False,
                  se_ratio=0., se_reduce_mid=False, se_gate_fn=torch.sigmoid,
-                 shuffle_type=None, pw_group=1,
                  bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT,
-                 folded_bn=False, padding_same=False):
+                 folded_bn=False, padding_same=False, drop_connect_rate=0.):
         super(InvertedResidual, self).__init__()
         mid_chs = int(in_chs * exp_ratio)
         self.has_se = se_ratio is not None and se_ratio > 0.
         self.has_residual = (in_chs == out_chs and stride == 1) and not noskip
         self.act_fn = act_fn
+        self.drop_connect_rate = drop_connect_rate
         dw_padding = padding_arg(kernel_size // 2, padding_same)
         pw_padding = padding_arg(0, padding_same)
 
         # Point-wise expansion
-        self.conv_pw = sconv2d(in_chs, mid_chs, 1, padding=pw_padding, groups=pw_group, bias=folded_bn)
+        self.conv_pw = sconv2d(in_chs, mid_chs, 1, padding=pw_padding, bias=folded_bn)
         self.bn1 = None if folded_bn else nn.BatchNorm2d(mid_chs, momentum=bn_momentum, eps=bn_eps)
-
-        self.shuffle_type = shuffle_type
-        if shuffle_type is not None:
-            self.shuffle = ChannelShuffle(pw_group)
 
         # Depth-wise convolution
         self.conv_dw = sconv2d(
@@ -199,11 +174,11 @@ class InvertedResidual(nn.Module):
         # Squeeze-and-excitation
         if self.has_se:
             se_base_chs = mid_chs if se_reduce_mid else in_chs
-            self.se = SqueezeExcite(mid_chs, reduce_chs=max(1, int(se_base_chs * se_ratio)),
-                                    act_fn=act_fn, gate_fn=se_gate_fn)
+            self.se = SqueezeExcite(
+                mid_chs, reduce_chs=max(1, int(se_base_chs * se_ratio)), act_fn=act_fn, gate_fn=se_gate_fn)
 
         # Point-wise linear projection
-        self.conv_pwl = sconv2d(mid_chs, out_chs, 1, padding=pw_padding, groups=pw_group, bias=folded_bn)
+        self.conv_pwl = sconv2d(mid_chs, out_chs, 1, padding=pw_padding, bias=folded_bn)
         self.bn3 = None if folded_bn else nn.BatchNorm2d(out_chs, momentum=bn_momentum, eps=bn_eps)
 
     def forward(self, x):
@@ -214,11 +189,6 @@ class InvertedResidual(nn.Module):
         if self.bn1 is not None:
             x = self.bn1(x)
         x = self.act_fn(x)
-
-        # FIXME haven't tried this yet
-        # for channel shuffle when using groups with pointwise convs as per FBNet variants
-        if self.shuffle_type == "mid":
-            x = self.shuffle(x)
 
         # Depth-wise convolution
         x = self.conv_dw(x)
@@ -236,6 +206,8 @@ class InvertedResidual(nn.Module):
             x = self.bn3(x)
 
         if self.has_residual:
+            if self.drop_connect_rate > 0.:
+                x = drop_connect(x, self.training, self.drop_connect_rate)
             x += residual
 
         # NOTE maskrcnn_benchmark building blocks have an SE module defined here for some variants
@@ -253,13 +225,14 @@ class MobilenetBuilder:
 
     """
 
-    def __init__(self, depth_multiplier=1.0, depth_divisor=8, min_depth=None,
-                 act_fn=None, se_gate_fn=torch.sigmoid, se_reduce_mid=False,
+    def __init__(self, channel_multiplier=1.0, channel_divisor=8, channel_min=None,
+                 drop_connect_rate=0., act_fn=None, se_gate_fn=torch.sigmoid, se_reduce_mid=False,
                  bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT,
                  folded_bn=False, padding_same=False, verbose=False):
-        self.depth_multiplier = depth_multiplier
-        self.depth_divisor = depth_divisor
-        self.min_depth = min_depth
+        self.channel_multiplier = channel_multiplier
+        self.channel_divisor = channel_divisor
+        self.channel_min = channel_min
+        self.drop_connect_rate = drop_connect_rate
         self.act_fn = act_fn
         self.se_gate_fn = se_gate_fn
         self.se_reduce_mid = se_reduce_mid
@@ -271,27 +244,26 @@ class MobilenetBuilder:
         self.in_chs = None
 
     def _round_channels(self, chs):
-        return round_channels(chs, self.depth_multiplier, self.depth_divisor, self.min_depth)
+        return round_channels(chs, self.channel_multiplier, self.channel_divisor, self.channel_min)
 
     def _make_block(self, ba):
         bt = ba.pop('block_type')
         ba['in_chs'] = self.in_chs
-        ba['out_chs'] = round_channels(ba['out_chs'])
+        ba['out_chs'] = self._round_channels(ba['out_chs'])
         ba['bn_momentum'] = self.bn_momentum
         ba['bn_eps'] = self.bn_eps
         ba['folded_bn'] = self.folded_bn
         ba['padding_same'] = self.padding_same
         # block act fn overrides the model default
         ba['act_fn'] = ba['act_fn'] if ba['act_fn'] is not None else self.act_fn
-        #  NOTE: could replace this with lambdas or functools binding if variety increases
         if bt == 'ir':
+            ba['drop_connect_rate'] = self.drop_connect_rate
             ba['se_gate_fn'] = self.se_gate_fn
             ba['se_reduce_mid'] = self.se_reduce_mid
             block = InvertedResidual(**ba)
         elif bt == 'ds' or bt == 'dsa':
+            ba['drop_connect_rate'] = self.drop_connect_rate
             block = DepthwiseSeparableConv(**ba)
-        elif bt == 'ca':
-            block = CascadeConv(**ba)
         elif bt == 'cn':
             block = ConvBnAct(**ba)
         else:
@@ -312,22 +284,21 @@ class MobilenetBuilder:
             blocks.append(block)
         return nn.Sequential(*blocks)
 
-    def __call__(self, in_chs, arch_def):
+    def __call__(self, in_chs, block_args):
         """ Build the blocks
         Args:
             in_chs: Number of input-channels passed to first block
-            arch_def: A list of lists, outer list defines stacks (or stages), inner
-                list contains strings defining block configuration(s)
+            block_args: A list of lists, outer list delimits stacks (stages),
+                inner list contains args defining block configuration(s)
         Return:
              List of block stacks (each stack wrapped in nn.Sequential)
         """
-        arch_args = _decode_arch_def(arch_def)  # convert and expand string defs to arg dicts
         if self.verbose:
-            print('Building model trunk with %d stacks (stages)...' % len(arch_args))
+            print('Building model trunk with %d stacks (stages)...' % len(block_args))
         self.in_chs = in_chs
         blocks = []
         # outer list of arch_args defines the stacks ('stages' by some conventions)
-        for stack_idx, stack in enumerate(arch_args):
+        for stack_idx, stack in enumerate(block_args):
             if self.verbose:
                 print('stack', stack_idx)
             assert isinstance(stack, list)
@@ -336,7 +307,7 @@ class MobilenetBuilder:
         return blocks
 
 
-def _decode_block_str(block_str):
+def _decode_block_str(block_str, depth_multiplier=1.0):
     """ Decode block definition string
 
     Gets a list of block arg (dicts) through a string notation of arguments.
@@ -417,19 +388,11 @@ def _decode_block_str(block_str):
             block_type=block_type,
             kernel_size=int(options['k']),
             out_chs=int(options['c']),
+            se_ratio=float(options['se']) if 'se' in options else None,
             stride=int(options['s']),
             act_fn=act_fn,
             noskip=block_type == 'dsa' or noskip,
             pw_act=block_type == 'dsa',
-        )
-    elif block_type == 'ca':
-        block_args = dict(
-            block_type=block_type,
-            kernel_size=int(options['k']),
-            out_chs=int(options['c']),
-            stride=int(options['s']),
-            act_fn=act_fn,
-            noskip=noskip,
         )
     elif block_type == 'cn':
         block_args = dict(
@@ -442,24 +405,19 @@ def _decode_block_str(block_str):
     else:
         assert False, 'Unknown block type (%s)' % block_type
 
-    # return a list of block args expanded by num_repeat
+    # return a list of block args expanded by num_repeat and
+    # scaled by depth_multiplier
+    num_repeat = int(math.ceil(num_repeat * depth_multiplier))
     return [deepcopy(block_args) for _ in range(num_repeat)]
 
 
-def _decode_arch_args(string_list):
-    block_args = []
-    for block_str in string_list:
-        block_args.append(_decode_block_str(block_str))
-    return block_args
-
-
-def _decode_arch_def(arch_def):
+def decode_arch_def(arch_def, depth_multiplier=1.0):
     arch_args = []
     for stack_idx, block_strings in enumerate(arch_def):
         assert isinstance(block_strings, list)
         stack_args = []
         for block_str in block_strings:
             assert isinstance(block_str, str)
-            stack_args.extend(_decode_block_str(block_str))
+            stack_args.extend(_decode_block_str(block_str, depth_multiplier))
         arch_args.append(stack_args)
     return arch_args

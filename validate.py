@@ -30,6 +30,8 @@ parser.add_argument('--mean', type=float, nargs='+', default=None, metavar='MEAN
                     help='Override mean pixel value of dataset')
 parser.add_argument('--std', type=float,  nargs='+', default=None, metavar='STD',
                     help='Override std deviation of of dataset')
+parser.add_argument('--crop-pct', type=float, default=None, metavar='PCT',
+                    help='Override default crop pct of 0.875')
 parser.add_argument('--interpolation', default='', type=str, metavar='NAME',
                     help='Image resize interpolation type (overrides model)')
 parser.add_argument('--num-classes', type=int, default=1000,
