@@ -17,8 +17,8 @@ import math
 import torch.nn as nn
 import torch.nn.functional as F
 
-from genmobilenet.helpers import load_state_dict_from_url
-from genmobilenet.mobilenet_builder import *
+from gen_efficientnet.helpers import load_state_dict_from_url
+from gen_efficientnet.mobilenet_builder import *
 
 __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_140',
            'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'semnasnet_140', 'mnasnet_small',
