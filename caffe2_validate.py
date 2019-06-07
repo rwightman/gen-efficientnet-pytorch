@@ -1,3 +1,8 @@
+""" Caffe2 validation script
+This script is intended to verify exported models running in Caffe2
+It utilizes the same PyTorch dataloader/processing pipeline for comparison against
+the originals, I also have no desire to write that code in Caffe2.
+"""
 import argparse
 import numpy as np
 from caffe2.python import core, workspace, model_helper
@@ -6,7 +11,7 @@ from data import create_loader, resolve_data_config, Dataset
 from utils import AverageMeter
 import time
 
-parser = argparse.ArgumentParser(description='PyTorch ImageNet Validation')
+parser = argparse.ArgumentParser(description='Caffe2 ImageNet Validation')
 parser.add_argument('data', metavar='DIR',
                     help='path to dataset')
 parser.add_argument('--model', '-m', metavar='MODEL', default='spnasnet1_00',
@@ -62,10 +67,6 @@ def main():
     #model.net.RunAllOnGPU(gpu_id=args.gpu_id, use_cudnn=False)
     #model.param_init_net.RunAllOnGPU(gpu_id=args.gpu_id, use_cudnn=False)
 
-    workspace.FeedBlob(input_blob, np.random.normal((1, 3, 224, 224)))
-    workspace.RunNetOnce(model.param_init_net)
-    workspace.CreateNet(model.net, overwrite=True, input_blobs=['0'])
-
     data_config = resolve_data_config('mobilenetv3_100', args)
     loader = create_loader(
         Dataset(args.data, load_bytes=args.tf_preprocessing),
@@ -79,8 +80,11 @@ def main():
         crop_pct=data_config['crop_pct'],
         tensorflow_preprocessing=args.tf_preprocessing)
 
+    workspace.FeedBlob(input_blob, np.random.normal(data_config['input_size']))
+    workspace.RunNetOnce(model.param_init_net)
+    workspace.CreateNet(model.net, overwrite=True, input_blobs=['0'])
+
     batch_time = AverageMeter()
-    losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
 

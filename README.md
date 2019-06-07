@@ -58,6 +58,17 @@ Google tf and tflite weights ported from official Tensorflow repositories
 * https://github.com/tensorflow/tpu/tree/master/models/official/mnasnet
 * https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet
 
+## Exporting
+
+Scripts to export models to ONNX and then to Caffe2 are included, along with a Caffe2 script to verify.
+
+As an example, to export the MobileNet-V3 pretrained model and then run an Imagenet validation:
+```
+python onnx_export.py --model mobilenetv3_100
+python onnx_to_caffe.py ./mobilenetv3_100.onnx --c2-prefix mobilenetv3
+python caffe2_validate.py /imagenet/validation/ --c2-init ./mobilenetv3.init.pb --c2-predict ./mobilenetv3.predict.pb --interpolation bicubic
+```
+
 ## TODO
 * Train more models with better results
 * Exported model validation in Caffe2
