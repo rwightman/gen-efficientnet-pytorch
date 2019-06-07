@@ -33,11 +33,11 @@ More pretrained models to come...
 
 ## Ported Weights
 
-I ported the Tensorflow MNASNet weights to verify sanity of my model. For some reason I can't hit the stated accuracy with my port Google's tflite weights. 
+I ported the Tensorflow MNASNet weights to verify sanity of my model. For some reason I can't hit the stated accuracy with my port Google's tflite weights. Using a TF equivalent to 'SAME' padding was important to get > 70%, but something small is still missing.
 
-Using a TF equivalent to 'SAME' padding was important to get > 70%, but something small is still missing. Note that the ported weights with the 'SAME' conv cannot be exported to ONNX. You'd be better off porting the TF model in this case anyways.
+The weights ported from Tensorflow checkpoints for the EfficientNet models do pretty much match accuracy in Tensorflow once a SAME convolution padding equivalent is added, and the same crop factors, image scaling, etc are used.
 
-Enabling the Tensorflow preprocessing pipeline with `--tf-preprocessing` at validaiton time will improve these scores by 0.1-0.5%
+Enabling the Tensorflow preprocessing pipeline with `--tf-preprocessing` at validaiton time will improve these scores by 0.1-0.5% as it's closer to what these models were trained with.
 
 |Model | Prec@1 (Err) | Prec@5 (Err) | Param # | Image Scaling  | Resolution | Crop | 
 |---|---|---|---|---|---|---|
@@ -68,6 +68,7 @@ python onnx_export.py --model mobilenetv3_100
 python onnx_to_caffe.py ./mobilenetv3_100.onnx --c2-prefix mobilenetv3
 python caffe2_validate.py /imagenet/validation/ --c2-init ./mobilenetv3.init.pb --c2-predict ./mobilenetv3.predict.pb --interpolation bicubic
 ```
+**NOTE** the ported weights with the 'SAME' conv padding activated cannot be exported to ONNX. You'd be better off porting from the TF model -> ONNX or other deployment format in this case anyways.
 
 ## TODO
 * Train more models with better results
