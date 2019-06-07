@@ -116,8 +116,6 @@ def main():
     print(' * Prec@1 {top1.avg:.3f} ({top1a:.3f}) Prec@5 {top5.avg:.3f} ({top5a:.3f})'.format(
         top1=top1, top1a=100-top1.avg, top5=top5, top5a=100.-top5.avg))
 
-    # turn it into something we can play with and examine which is in a multi-dimensional array
-
 
 def accuracy_np(output, target):
     max_indices = np.argsort(output, axis=1)[:, ::-1]
