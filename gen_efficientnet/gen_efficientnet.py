@@ -53,7 +53,8 @@ model_urls = {
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/fbnetc_100-c345b898.pth',
     'spnasnet_100':
         'https://www.dropbox.com/s/iieopt18rytkgaa/spnasnet_100-048bc3f4.pth?dl=1',
-    'efficientnet_b0': None,
+    'efficientnet_b0':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_b0-d6904d92.pth',
     'efficientnet_b1': None,
     'efficientnet_b2': None,
     'efficientnet_b3': None,
@@ -742,7 +743,7 @@ def mobilenetv3_100(pretrained=False, **kwargs):
     """ Constructs a MobileNet-V3 100 (depth_multiplier == 1.0) model
 
     Args:
-        pretrained (bool): If True, returns a model prertrained on ImageNet
+        pretrained (bool): If True, returns a model pre-trained on ImageNet-1K
     """
     if pretrained and 'bn_eps' not in kwargs:
         # pretrained model trained with non-default BN epsilon
@@ -757,7 +758,7 @@ def fbnetc_100(pretrained=False, **kwargs):
     """ FBNet-C 100 (depth_multiplier == 1.0) model
 
     Args:
-        pretrained (bool): If True, returns a model prertrained on ImageNet
+        pretrained (bool): If True, returns a model pre-trained on ImageNet-1K
 
     """
     if pretrained and 'bn_eps' not in kwargs:
@@ -794,10 +795,14 @@ def spnasnet_100(pretrained=False, **kwargs):
 
 
 def efficientnet_b0(pretrained=False, **kwargs):
-    """ EfficientNet-B0 """
+    """ EfficientNet-B0 model
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet-1K
+    """
     model = _gen_efficientnet(channel_multiplier=1.0, depth_multiplier=1.0, **kwargs)
-    #if pretrained:
-    #    model.load_state_dict(load_state_dict_from_url(model_urls['efficientnet_b0']))
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['efficientnet_b0']))
     return model
 
 

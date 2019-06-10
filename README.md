@@ -23,6 +23,7 @@ I've attempted to train some of these models, decent results below. I've found i
 
 |Model | Prec@1 (Err) | Prec@5 (Err) | Param # | Image Scaling | Resolution |
 |---|---|---|---|---|---|
+| efficientnet_b0 | 76.912 (23.088) | 93.210 (6.790) | 5.29M | bicubic | 224x224 |
 | mobilenetv3_100 | 75.634 (24.366) | 92.708 (7.292) | 5.5M | bicubic | 224x224 |
 | fbnetc_100 | 75.124 (24.876) | 92.386 (7.614) | 5.6M | bilinear | 224x224 |
 | spnasnet_100 | 74.084 (25.916)  | 91.818 (8.182) | 4.42M | bilinear | 224x224 |
