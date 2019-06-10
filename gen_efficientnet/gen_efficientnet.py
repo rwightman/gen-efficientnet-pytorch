@@ -722,36 +722,45 @@ def mobilenetv2_100(pretrained=False, **kwargs):
     return model
 
 
-def mobilenetv3_050(num_classes, in_chans=3, pretrained=False, **kwargs):
+def mobilenetv3_050(pretrained=False, **kwargs):
     """ MobileNet V3 """
-    model = _gen_mobilenet_v3(0.5, num_classes=num_classes, in_chans=in_chans, **kwargs)
+    model = _gen_mobilenet_v3(0.5, **kwargs)
     #if pretrained:
     #    model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv3_050']))
     return model
 
 
-def mobilenetv3_075(num_classes, in_chans=3, pretrained=False, **kwargs):
+def mobilenetv3_075(pretrained=False, **kwargs):
     """ MobileNet V3 """
-    model = _gen_mobilenet_v3(0.75, num_classes=num_classes, in_chans=in_chans, **kwargs)
+    model = _gen_mobilenet_v3(0.75, **kwargs)
     #if pretrained:
     #    model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv3_075']))
     return model
 
 
-def mobilenetv3_100(num_classes, in_chans=3, pretrained=False, **kwargs):
-    """ MobileNet V3 """
-    if pretrained:
+def mobilenetv3_100(pretrained=False, **kwargs):
+    """ Constructs a MobileNet-V3 100 (depth_multiplier == 1.0) model
+
+    Args:
+        pretrained (bool): If True, returns a model prertrained on ImageNet
+    """
+    if pretrained and 'bn_eps' not in kwargs:
         # pretrained model trained with non-default BN epsilon
         kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
-    model = _gen_mobilenet_v3(1.0, num_classes=num_classes, in_chans=in_chans, **kwargs)
+    model = _gen_mobilenet_v3(1.0, **kwargs)
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv3_100']))
     return model
 
 
 def fbnetc_100(pretrained=False, **kwargs):
-    """ FBNet-C """
-    if pretrained:
+    """ FBNet-C 100 (depth_multiplier == 1.0) model
+
+    Args:
+        pretrained (bool): If True, returns a model prertrained on ImageNet
+
+    """
+    if pretrained and 'bn_eps' not in kwargs:
         # pretrained model trained with non-default BN epsilon
         kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
     model = _gen_fbnetc(1.0, **kwargs)
