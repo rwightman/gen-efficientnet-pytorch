@@ -740,6 +740,9 @@ def mobilenetv3_075(num_classes, in_chans=3, pretrained=False, **kwargs):
 
 def mobilenetv3_100(num_classes, in_chans=3, pretrained=False, **kwargs):
     """ MobileNet V3 """
+    if pretrained:
+        # pretrained model trained with non-default BN epsilon
+        kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
     model = _gen_mobilenet_v3(1.0, num_classes=num_classes, in_chans=in_chans, **kwargs)
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv3_100']))
@@ -750,7 +753,7 @@ def fbnetc_100(pretrained=False, **kwargs):
     """ FBNet-C """
     if pretrained:
         # pretrained model trained with non-default BN epsilon
-        kwargs['bn_eps'] = 1e-3
+        kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
     model = _gen_fbnetc(1.0, **kwargs)
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['fbnetc_100']))
