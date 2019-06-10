@@ -132,12 +132,15 @@ class SqueezeExcite(nn.Module):
         self.act_fn = act_fn
         self.gate_fn = gate_fn
         reduced_chs = reduce_chs or in_chs
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.conv_reduce = nn.Conv2d(in_chs, reduced_chs, 1, bias=True)
         self.conv_expand = nn.Conv2d(reduced_chs, in_chs, 1, bias=True)
 
     def forward(self, x):
-        # NOTE adaptiveavgpool can be used here, but seems to cause issues with NVIDIA AMP performance
-        x_se = x.view(x.size(0), x.size(1), -1).mean(-1).view(x.size(0), x.size(1), 1, 1)
+        # NOTE adaptiveavgpool bad for NVIDIA AMP performance
+        # tensor.view + mean bad for ONNX export (produces mess of gather ops that break TensorRT)
+        #x_se = x.view(x.size(0), x.size(1), -1).mean(-1).view(x.size(0), x.size(1), 1, 1)
+        x_se = self.avg_pool(x)
         x_se = self.conv_reduce(x_se)
         x_se = self.act_fn(x_se)
         x_se = self.conv_expand(x_se)
@@ -215,8 +218,8 @@ class InvertedResidual(nn.Module):
         return x
 
 
-class MobilenetBuilder:
-    """ Build Trunk Blocks for Mobile Networks
+class EfficientNetBuilder:
+    """ Build Trunk Blocks for Efficient/Mobile Networks
 
     This ended up being somewhat of a cross between
     https://github.com/tensorflow/tpu/blob/master/models/official/mnasnet/mnasnet_models.py

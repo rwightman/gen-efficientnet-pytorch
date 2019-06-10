@@ -18,7 +18,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from gen_efficientnet.helpers import load_state_dict_from_url
-from gen_efficientnet.mobilenet_builder import *
+from gen_efficientnet.efficientnet_builder import *
 
 __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_140',
            'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'semnasnet_140', 'mnasnet_small',
@@ -98,7 +98,7 @@ class GenEfficientNet(nn.Module):
         self.bn1 = None if folded_bn else nn.BatchNorm2d(stem_size, momentum=bn_momentum, eps=bn_eps)
         in_chs = stem_size
 
-        builder = MobilenetBuilder(
+        builder = EfficientNetBuilder(
             channel_multiplier, channel_divisor, channel_min,
             drop_connect_rate, act_fn, se_gate_fn, se_reduce_mid,
             bn_momentum, bn_eps, folded_bn, padding_same)
@@ -147,7 +147,8 @@ class GenEfficientNet(nn.Module):
 
     def forward(self, x):
         x = self.features(x)
-        x = x.view(x.size(0), -1)
+        #x = x.view(x.data.size(0), -1)  # FIXME this does not produce a sane or TensorRt compat ONNX graph
+        x = x.squeeze(3).squeeze(2)
         if self.drop_rate > 0.:
             x = F.dropout(x, p=self.drop_rate, training=self.training)
         return self.classifier(x)
