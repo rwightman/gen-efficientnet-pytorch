@@ -36,6 +36,7 @@ def main():
         args.pretrained = True
 
     # create model
+    print("==> Creating PyTorch {} model".format(args.model))
     model = create_model(
         args.model,
         num_classes=args.num_classes,
@@ -47,18 +48,24 @@ def main():
 
     x = torch.randn((1, 3, args.img_size or 224, args.img_size or 224), requires_grad=True)
 
-    torch_out = torch.onnx._export(model, x, args.output, export_params=True)
+    print("==> Exporting model to ONNX format at '{}'".format(args.output))
+    input_names = ["input0"]
+    output_names = ["output0"]
+    torch_out = torch.onnx._export(
+        model, x, args.output, export_params=True, verbose=False,
+        input_names=input_names, output_names=output_names)
 
+    print("==> Loading and checking exported model from '{}'".format(args.output))
     onnx_model = onnx.load(args.output)
+    onnx.checker.check_model(onnx_model)  # assuming throw on error
+    print("==> Passed")
 
+    print("==> Loading model into Caffe2 backend and comparing forward pass.".format(args.output))
     caffe2_backend = onnx_caffe2.prepare(onnx_model)
-
     B = {onnx_model.graph.input[0].name: x.data.numpy()}
-
     c2_out = caffe2_backend.run(B)[0]
-
     np.testing.assert_almost_equal(torch_out.data.numpy(), c2_out, decimal=5)
-
+    print("==> Passed")
 
 if __name__ == '__main__':
     main()
