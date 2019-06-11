@@ -37,8 +37,10 @@ model_urls = {
     'mnasnet_140': None,
     'semnasnet_050': None,
     'semnasnet_075': None,
-    'semnasnet_100': None,
-    'tflite_semnasnet_100':  'https://www.dropbox.com/s/yiori47sr9dydev/tflite_semnasnet_100-7c780429.pth?dl=1',
+    'semnasnet_100':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mnasnet_a1-d9418771.pth',
+    'tflite_semnasnet_100':
+        'https://www.dropbox.com/s/yiori47sr9dydev/tflite_semnasnet_100-7c780429.pth?dl=1',
     'semnasnet_140': None,
     'mnasnet_small': None,
     'mobilenetv1_100': None,
@@ -616,24 +618,24 @@ def _gen_efficientnet(channel_multiplier=1.0, depth_multiplier=1.0, num_classes=
 def mnasnet_050(pretrained=False, **kwargs):
     """ MNASNet B1, depth multiplier of 0.5. """
     model = _gen_mnasnet_b1(0.5, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_050']))
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_050']))
     return model
 
 
 def mnasnet_075(pretrained=False, **kwargs):
     """ MNASNet B1, depth multiplier of 0.75. """
     model = _gen_mnasnet_b1(0.75, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_075']))
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_075']))
     return model
 
 
 def mnasnet_100(pretrained=False, **kwargs):
     """ MNASNet B1, depth multiplier of 1.0. """
     model = _gen_mnasnet_b1(1.0, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_100']))
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_100']))
     return model
 
 
@@ -651,29 +653,33 @@ def tflite_mnasnet_100(pretrained=False, **kwargs):
 def mnasnet_140(pretrained=False, **kwargs):
     """ MNASNet B1,  depth multiplier of 1.4 """
     model = _gen_mnasnet_b1(1.4, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_140']))
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_140']))
     return model
 
 
 def semnasnet_050(pretrained=False, **kwargs):
     """ MNASNet A1 (w/ SE), depth multiplier of 0.5 """
     model = _gen_mnasnet_a1(0.5, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet_050']))
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet_050']))
     return model
 
 
 def semnasnet_075(pretrained=False, **kwargs):
     """ MNASNet A1 (w/ SE),  depth multiplier of 0.75. """
     model = _gen_mnasnet_a1(0.75, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet_075']))
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet_075']))
     return model
 
 
 def semnasnet_100(pretrained=False, **kwargs):
-    """ MNASNet A1 (w/ SE), depth multiplier of 1.0. """
+    """ MNASNet A1 (w/ SE), depth multiplier of 1.0
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet-1K
+    """
     model = _gen_mnasnet_a1(1.0, **kwargs)
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet_100']))
@@ -694,16 +700,16 @@ def tflite_semnasnet_100(pretrained=False, **kwargs):
 def semnasnet_140(pretrained=False, **kwargs):
     """ MNASNet A1 (w/ SE), depth multiplier of 1.4. """
     model = _gen_mnasnet_a1(1.4, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet_140']))
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['semnasnet_140']))
     return model
 
 
 def mnasnet_small(pretrained=False, **kwargs):
     """ MNASNet Small,  depth multiplier of 1.0. """
     model = _gen_mnasnet_small(1.0, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_small']))
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_small']))
     return model
 
 
