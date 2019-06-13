@@ -27,7 +27,7 @@ I've attempted to train some of these models, decent results below. I've found i
 | mobilenetv3_100 | 75.634 (24.366) | 92.708 (7.292) | 5.5M | bicubic | 224x224 |
 | mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.89M | bicubic | 224x224 |
 | fbnetc_100 | 75.124 (24.876) | 92.386 (7.614) | 5.6M | bilinear | 224x224 |
-| mnasnet_b1 | 74.658 (25.342) | 92.114 (7.886) | 3.89M | bicubic | 224x224 |
+| mnasnet_b1 | 74.658 (25.342) | 92.114 (7.886) | 4.38M | bicubic | 224x224 |
 | spnasnet_100 | 74.084 (25.916)  | 91.818 (8.182) | 4.42M | bilinear | 224x224 |
 
 
