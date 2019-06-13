@@ -231,7 +231,7 @@ class EfficientNetBuilder:
     def __init__(self, channel_multiplier=1.0, channel_divisor=8, channel_min=None,
                  drop_connect_rate=0., act_fn=None, se_gate_fn=torch.sigmoid, se_reduce_mid=False,
                  bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT,
-                 folded_bn=False, padding_same=False, verbose=False):
+                 folded_bn=False, padding_same=False):
         self.channel_multiplier = channel_multiplier
         self.channel_divisor = channel_divisor
         self.channel_min = channel_min
@@ -243,7 +243,6 @@ class EfficientNetBuilder:
         self.bn_eps = bn_eps
         self.folded_bn = folded_bn
         self.padding_same = padding_same
-        self.verbose = verbose
         self.in_chs = None
 
     def _round_channels(self, chs):
@@ -278,8 +277,6 @@ class EfficientNetBuilder:
         blocks = []
         # each stack (stage) contains a list of block arguments
         for block_idx, ba in enumerate(stack_args):
-            if self.verbose:
-                print('block', block_idx, end=', ')
             if block_idx >= 1:
                 # only the first block in any stack/stage can have a stride > 1
                 ba['stride'] = 1
@@ -296,14 +293,10 @@ class EfficientNetBuilder:
         Return:
              List of block stacks (each stack wrapped in nn.Sequential)
         """
-        if self.verbose:
-            print('Building model trunk with %d stacks (stages)...' % len(block_args))
         self.in_chs = in_chs
         blocks = []
         # outer list of arch_args defines the stacks ('stages' by some conventions)
         for stack_idx, stack in enumerate(block_args):
-            if self.verbose:
-                print('stack', stack_idx)
             assert isinstance(stack, list)
             stack = self._make_stack(stack)
             blocks.append(stack)
