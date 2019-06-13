@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import torch
 from torch import nn as nn
-from gen_efficientnet.conv2d_same import *
+from .conv2d_same import *
 
 # Default args for PyTorch BN impl
 BN_MOMENTUM_DEFAULT = 0.1

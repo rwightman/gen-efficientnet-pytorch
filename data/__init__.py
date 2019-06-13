@@ -1,3 +1,3 @@
-from data.dataset import Dataset
-from data.transforms import *
-from data.loader import create_loader
+from .dataset import Dataset
+from .transforms import *
+from .loader import create_loader

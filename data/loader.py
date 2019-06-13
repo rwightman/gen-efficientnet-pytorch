@@ -1,6 +1,6 @@
 import torch
 import torch.utils.data
-from data.transforms import *
+from .transforms import *
 
 
 def fast_collate(batch):

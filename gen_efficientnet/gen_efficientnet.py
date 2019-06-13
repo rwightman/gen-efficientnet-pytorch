@@ -17,12 +17,12 @@ import math
 import torch.nn as nn
 import torch.nn.functional as F
 
-from gen_efficientnet.helpers import load_state_dict_from_url
-from gen_efficientnet.efficientnet_builder import *
+from .helpers import load_state_dict_from_url
+from .efficientnet_builder import *
 
-__all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_140',
-           'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'semnasnet_140', 'mnasnet_small',
-           'tflite_mnasnet_100', 'tflite_semnasnet_100', 'mobilenetv1_100', 'mobilenetv2_100',
+__all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_b1', 'mnasnet_140',
+           'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'mnasnet_a1', 'semnasnet_140',
+           'mnasnet_small', 'tflite_mnasnet_b1', 'tflite_mnasnet_a1', 'mobilenetv1_100', 'mobilenetv2_100',
            'mobilenetv3_050', 'mobilenetv3_075', 'mobilenetv3_100', 'chamnetv1_100', 'chamnetv2_100',
            'fbnetc_100', 'spnasnet_100', 'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2',
            'efficientnet_b3', 'efficientnet_b4', 'tf_efficientnet_b0', 'tf_efficientnet_b1',
@@ -32,8 +32,10 @@ __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnas
 model_urls = {
     'mnasnet_050': None,
     'mnasnet_075': None,
-    'mnasnet_100': None,
-    'tflite_mnasnet_100': 'https://www.dropbox.com/s/q55ir3tx8mpeyol/tflite_mnasnet_100-31639cdc.pth?dl=1',
+    'mnasnet_100':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mnasnet_b1-74cb7081.pth',
+    'tflite_mnasnet_100':
+        'https://www.dropbox.com/s/q55ir3tx8mpeyol/tflite_mnasnet_100-31639cdc.pth?dl=1',
     'mnasnet_140': None,
     'semnasnet_050': None,
     'semnasnet_075': None,
@@ -634,12 +636,21 @@ def mnasnet_075(pretrained=False, **kwargs):
 def mnasnet_100(pretrained=False, **kwargs):
     """ MNASNet B1, depth multiplier of 1.0. """
     model = _gen_mnasnet_b1(1.0, **kwargs)
-    #if pretrained:
-    #    model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_100']))
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['mnasnet_100']))
     return model
 
 
-def tflite_mnasnet_100(pretrained=False, **kwargs):
+def mnasnet_b1(pretrained=False, **kwargs):
+    """ MNASNet B1, depth multiplier of 1.0.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet-1K
+    """
+    return mnasnet_100(pretrained, **kwargs)
+
+
+def tflite_mnasnet_b1(pretrained=False, **kwargs):
     """ MNASNet B1, depth multiplier of 1.0. """
     # these two args are for compat with tflite pretrained weights
     kwargs['folded_bn'] = True
@@ -686,7 +697,16 @@ def semnasnet_100(pretrained=False, **kwargs):
     return model
 
 
-def tflite_semnasnet_100(pretrained=False, **kwargs):
+def mnasnet_a1(pretrained=False, **kwargs):
+    """ MNASNet A1 (w/ SE), depth multiplier of 1.0
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet-1K
+    """
+    return semnasnet_100(pretrained, **kwargs)
+
+
+def tflite_mnasnet_a1(pretrained=False, **kwargs):
     """ MNASNet A1, depth multiplier of 1.0. """
     # these two args are for compat with tflite pretrained weights
     kwargs['folded_bn'] = True
