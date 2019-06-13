@@ -61,6 +61,18 @@ Google tf and tflite weights ported from official Tensorflow repositories
 * https://github.com/tensorflow/tpu/tree/master/models/official/mnasnet
 * https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet
 
+## PyTorch Hub
+
+Models can be accessed via the PyTorch Hub API
+
+```
+>>> torch.hub.list('rwightman/gen-efficientnet-pytorch')
+['efficientnet_b0', ...]
+>>> model = torch.hub.load('rwightman/gen-efficientnet-pytorch', efficientnet_b0', pretrained=True)
+>>> model.eval()
+>>> output = model(torch.randn(1,3,224,224))
+```
+
 ## Exporting
 
 Scripts to export models to ONNX and then to Caffe2 are included, along with a Caffe2 script to verify.
@@ -73,7 +85,3 @@ python caffe2_validate.py /imagenet/validation/ --c2-init ./mobilenetv3.init.pb 
 ```
 **NOTE** the ported weights with the 'SAME' conv padding activated cannot be exported to ONNX. You'd be better off porting from the TF model -> ONNX or other deployment format in this case anyways.
 
-## TODO
-* Train more models with better results
-* Exported model validation in Caffe2
-* More models (ShuffleNetV2)
