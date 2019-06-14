@@ -1,16 +1,4 @@
 # Model Performance Benchmarks
-- EfficientNet-B0
-  - Unoptimized
-  - Optimized
-- MobileNet-V3
-  - Unoptimized
-  - Optimized
-- MnasNet-A1
-  - Unoptimized
-  - Optimized
-- MnasNet-B1
-  - Unoptimized
-  - Optimized
 
 All benchmarks run as per:
 
