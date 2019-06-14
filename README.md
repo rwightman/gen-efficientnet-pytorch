@@ -21,14 +21,14 @@ I originally implemented and trained some these models with code [here](https://
 I've managed to train several of the models to accuracies at or above the originating papers and official impl. My training code is here: https://github.com/rwightman/pytorch-image-models
 
 
-|Model | Prec@1 (Err) | Prec@5 (Err) | Param # | Image Scaling | Resolution |
-|---|---|---|---|---|---|
-| efficientnet_b0 | 76.912 (23.088) | 93.210 (6.790) | 5.29M | bicubic | 224x224 |
-| mobilenetv3_100 | 75.634 (24.366) | 92.708 (7.292) | 5.5M | bicubic | 224x224 |
-| mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.89M | bicubic | 224x224 |
-| fbnetc_100 | 75.124 (24.876) | 92.386 (7.614) | 5.6M | bilinear | 224x224 |
-| mnasnet_b1 | 74.658 (25.342) | 92.114 (7.886) | 4.38M | bicubic | 224x224 |
-| spnasnet_100 | 74.084 (25.916)  | 91.818 (8.182) | 4.42M | bilinear | 224x224 |
+|Model | Prec@1 (Err) | Prec@5 (Err) | Param#(M) | MAdds(M) | Image Scaling | Resolution |
+|---|---|---|---|---|---|---|
+| efficientnet_b0 | 76.912 (23.088) | 93.210 (6.790) | 5.3 | 390 | bicubic | 224x224 |
+| mobilenetv3_100 | 75.634 (24.366) | 92.708 (7.292) | 5.5 | 219 | bicubic | 224x224 |
+| mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.9 | 312 | bicubic | 224x224 |
+| fbnetc_100 | 75.124 (24.876) | 92.386 (7.614) | 5.6 | 385 | bilinear | 224x224 |
+| mnasnet_b1 | 74.658 (25.342) | 92.114 (7.886) | 4.4 | 315 | bicubic | 224x224 |
+| spnasnet_100 | 74.084 (25.916)  | 91.818 (8.182) | 4.4 | ? | bilinear | 224x224 |
 
 
 More pretrained models to come...
