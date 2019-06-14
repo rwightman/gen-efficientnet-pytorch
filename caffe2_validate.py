@@ -58,15 +58,6 @@ def main():
         predict_net_proto.ParseFromString(f.read())
     model.net = core.Net(predict_net_proto)  # model.net.AppendNet(core.Net(predict_net_proto))
 
-    # this is so obvious, wonderful interface </sarcasm>
-    input_blob = model.net.external_inputs[0]
-    output_blob = model.net.external_outputs[0]
-
-    # CUDA is crashing, no idea why, awesome error message, give it a try for kicks
-    #device_opts = core.DeviceOption(caffe2_pb2.PROTO_CUDA, args.gpu_id)
-    #model.net.RunAllOnGPU(gpu_id=args.gpu_id, use_cudnn=False)
-    #model.param_init_net.RunAllOnGPU(gpu_id=args.gpu_id, use_cudnn=False)
-
     data_config = resolve_data_config('mobilenetv3_100', args)
     loader = create_loader(
         Dataset(args.data, load_bytes=args.tf_preprocessing),
@@ -80,19 +71,32 @@ def main():
         crop_pct=data_config['crop_pct'],
         tensorflow_preprocessing=args.tf_preprocessing)
 
-    workspace.FeedBlob(input_blob, np.random.normal(data_config['input_size']))
+    # this is so obvious, wonderful interface </sarcasm>
+    input_blob = model.net.external_inputs[0]
+    output_blob = model.net.external_outputs[0]
+
+    if True:
+        device_opts = None
+    else:
+        # CUDA is crashing, no idea why, awesome error message, give it a try for kicks
+        device_opts = core.DeviceOption(caffe2_pb2.PROTO_CUDA, args.gpu_id)
+        model.net.RunAllOnGPU(gpu_id=args.gpu_id, use_cudnn=True)
+        model.param_init_net.RunAllOnGPU(gpu_id=args.gpu_id, use_cudnn=True)
+
+    model.param_init_net.GaussianFill(
+        [], input_blob.GetUnscopedName(),
+        shape=(1,) + data_config['input_size'], mean=0.0, std=1.0)
     workspace.RunNetOnce(model.param_init_net)
-    workspace.CreateNet(model.net, overwrite=True, input_blobs=['0'])
+    workspace.CreateNet(model.net, overwrite=True)
 
     batch_time = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
-
     end = time.time()
     for i, (input, target) in enumerate(loader):
         # run the net and return prediction
         caffe2_in = input.data.numpy()
-        workspace.FeedBlob(input_blob, caffe2_in)
+        workspace.FeedBlob(input_blob, caffe2_in, device_opts)
         workspace.RunNet(model.net, num_iter=1)
         output = workspace.FetchBlob(output_blob)
 
