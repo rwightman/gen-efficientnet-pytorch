@@ -33,7 +33,7 @@ def resolve_data_config(model, args, default_cfg={}, verbose=True):
     new_config['input_size'] = input_size
 
     # resolve interpolation method
-    new_config['interpolation'] = 'bilinear'
+    new_config['interpolation'] = 'bicubic'
     if args.interpolation:
         new_config['interpolation'] = args.interpolation
     elif 'interpolation' in default_cfg:

@@ -25,8 +25,8 @@ __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnas
            'mnasnet_small', 'tflite_mnasnet_b1', 'tflite_mnasnet_a1', 'mobilenetv1_100', 'mobilenetv2_100',
            'mobilenetv3_050', 'mobilenetv3_075', 'mobilenetv3_100', 'chamnetv1_100', 'chamnetv2_100',
            'fbnetc_100', 'spnasnet_100', 'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2',
-           'efficientnet_b3', 'efficientnet_b4', 'tf_efficientnet_b0', 'tf_efficientnet_b1',
-           'tf_efficientnet_b2', 'tf_efficientnet_b3']
+           'efficientnet_b3', 'efficientnet_b4', 'efficientnet_b5', 'tf_efficientnet_b0', 'tf_efficientnet_b1',
+           'tf_efficientnet_b2', 'tf_efficientnet_b3', 'tf_efficientnet_b4', 'tf_efficientnet_b5']
 
 
 model_urls = {
@@ -63,6 +63,7 @@ model_urls = {
     'efficientnet_b2': None,
     'efficientnet_b3': None,
     'efficientnet_b4': None,
+    'efficientnet_b5': None,
     'tf_efficientnet_b0':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b0-0af12548.pth',
     'tf_efficientnet_b1':
@@ -71,6 +72,10 @@ model_urls = {
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b2-e393ef04.pth',
     'tf_efficientnet_b3':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b3-e3bd6955.pth',
+    'tf_efficientnet_b4':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b4-74ee3bed.pth',
+    'tf_efficientnet_b5':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b5-c6949ce9.pth',
 
 }
 
@@ -865,6 +870,14 @@ def efficientnet_b4(pretrained=False, **kwargs):
     return model
 
 
+def efficientnet_b5(pretrained=False, **kwargs):
+    """ EfficientNet-B4 """
+    model = _gen_efficientnet(channel_multiplier=1.6, depth_multiplier=2.2, **kwargs)
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['efficientnet_b4']))
+    return model
+
+
 def tf_efficientnet_b0(pretrained=False, **kwargs):
     """ EfficientNet-B0. Tensorflow compatible variant  """
     kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
@@ -902,5 +915,25 @@ def tf_efficientnet_b3(pretrained=False, **kwargs):
     model = _gen_efficientnet(channel_multiplier=1.2, depth_multiplier=1.4, **kwargs)
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b3']))
+    return model
+
+
+def tf_efficientnet_b4(pretrained=False, **kwargs):
+    """ EfficientNet-B4. Tensorflow compatible variant """
+    kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
+    kwargs['padding_same'] = True
+    model = _gen_efficientnet(channel_multiplier=1.4, depth_multiplier=1.8, **kwargs)
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b4']))
+    return model
+
+
+def tf_efficientnet_b5(pretrained=False, **kwargs):
+    """ EfficientNet-B5. Tensorflow compatible variant """
+    kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
+    kwargs['padding_same'] = True
+    model = _gen_efficientnet(channel_multiplier=1.6, depth_multiplier=2.2, **kwargs)
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b5']))
     return model
 

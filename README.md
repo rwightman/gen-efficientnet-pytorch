@@ -44,6 +44,10 @@ Enabling the Tensorflow preprocessing pipeline with `--tf-preprocessing` at vali
 
 |Model | Prec@1 (Err) | Prec@5 (Err) | Param # | Image Scaling  | Resolution | Crop | 
 |---|---|---|---|---|---|---|
+| tf_efficientnet_b5 *tfp  | 83.200 (16.800) | 96.456 (3.544) | 30.39 | bicubic | 456x456 | N/A |
+| tf_efficientnet_b5       | 83.176 (16.824) | 96.536 (3.464) | 30.39 | bicubic | 456x456 | 0.934 |
+| tf_efficientnet_b4       | 82.604 (17.396) | 96.128 (3.872) | 19.34 | bicubic | 380x380 | 0.922 |
+| tf_efficientnet_b4 *tfp  | 82.604 (17.396) | 96.094 (3.906) | 19.34 | bicubic | 380x380 | N/A |
 | tf_efficientnet_b3 *tfp  | 80.982 (19.018) | 95.332 (4.668) | 12.23 | bicubic | 300x300 | N/A |
 | tf_efficientnet_b3       | 80.968 (19.032) | 95.274 (4.726) | 12.23 | bicubic | 300x300 | 0.903 |
 | tf_efficientnet_b2 *tfp  | 79.782 (20.218) | 94.800 (5.200) | 9.11 | bicubic | 260x260 | N/A |
