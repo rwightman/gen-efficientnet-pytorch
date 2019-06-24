@@ -59,8 +59,10 @@ model_urls = {
         'https://www.dropbox.com/s/iieopt18rytkgaa/spnasnet_100-048bc3f4.pth?dl=1',
     'efficientnet_b0':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_b0-d6904d92.pth',
-    'efficientnet_b1': None,
-    'efficientnet_b2': None,
+    'efficientnet_b1':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_b1-533bc792.pth',
+    'efficientnet_b2':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_b2-d4105846.pth',
     'efficientnet_b3': None,
     'efficientnet_b4': None,
     'efficientnet_b5': None,
@@ -840,16 +842,16 @@ def efficientnet_b0(pretrained=False, **kwargs):
 def efficientnet_b1(pretrained=False, **kwargs):
     """ EfficientNet-B1 """
     model = _gen_efficientnet(channel_multiplier=1.0, depth_multiplier=1.1, **kwargs)
-    #if pretrained:
-    #    model.load_state_dict(load_state_dict_from_url(model_urls['efficientnet_b1']))
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['efficientnet_b1']))
     return model
 
 
 def efficientnet_b2(pretrained=False, **kwargs):
     """ EfficientNet-B2 """
     model = _gen_efficientnet(channel_multiplier=1.1, depth_multiplier=1.2, **kwargs)
-    #if pretrained:
-    #    model.load_state_dict(load_state_dict_from_url(model_urls['efficientnet_b2']))
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['efficientnet_b2']))
     return model
 
 

@@ -92,6 +92,85 @@ Parameter Memory per operator type:
               0 MB.          0%. Mul
         20.9488 MB in Total
 ```
+
+## EfficientNet-B1
+### Optimized
+```
+Main run finished. Milliseconds per iter: 71.8102. Iters per second: 13.9256
+Time per operator type:
+        45.7915 ms.    66.3206%. Conv
+        17.8718 ms.    25.8841%. Sigmoid
+        4.44132 ms.    6.43244%. Mul
+        0.51001 ms.   0.738658%. AveragePool
+       0.233283 ms.   0.337868%. Add
+       0.194986 ms.   0.282402%. FC
+     0.00268255 ms. 0.00388519%. Squeeze
+        69.0456 ms in Total
+FLOP per operator type:
+        1.37105 GFLOP.    98.7673%. Conv
+      0.0138759 GFLOP.    0.99959%. Mul
+       0.002561 GFLOP.   0.184489%. FC
+    0.000674432 GFLOP.  0.0485847%. Add
+        1.38816 GFLOP in Total
+Feature Memory Read per operator type:
+         94.624 MB.    54.0789%. Mul
+        69.8255 MB.    39.9062%. Conv
+        5.39546 MB.    3.08357%. Add
+        5.12912 MB.    2.93136%. FC
+        174.974 MB in Total
+Feature Memory Written per operator type:
+        55.5035 MB.     54.555%. Mul
+        43.5333 MB.    42.7894%. Conv
+        2.69773 MB.    2.65163%. Add
+          0.004 MB. 0.00393165%. FC
+        101.739 MB in Total
+Parameter Memory per operator type:
+        25.7479 MB.    83.4024%. Conv
+          5.124 MB.    16.5976%. FC
+              0 MB.          0%. Add
+              0 MB.          0%. Mul
+        30.8719 MB in Total
+```
+
+## EfficientNet-B2
+### Optimized
+```
+Main run finished. Milliseconds per iter: 92.28. Iters per second: 10.8366
+Time per operator type:
+        61.4627 ms.    67.5845%. Conv
+        22.7458 ms.    25.0113%. Sigmoid
+        5.59931 ms.    6.15701%. Mul
+       0.642567 ms.   0.706568%. AveragePool
+       0.272795 ms.   0.299965%. Add
+       0.216178 ms.   0.237709%. FC
+     0.00268895 ms. 0.00295677%. Squeeze
+         90.942 ms in Total
+FLOP per operator type:
+        1.98431 GFLOP.    98.9343%. Conv
+      0.0177039 GFLOP.   0.882686%. Mul
+       0.002817 GFLOP.   0.140451%. FC
+    0.000853984 GFLOP.  0.0425782%. Add
+        2.00568 GFLOP in Total
+Feature Memory Read per operator type:
+        120.609 MB.    54.9637%. Mul
+        86.3512 MB.    39.3519%. Conv
+        6.83187 MB.    3.11341%. Add
+        5.64163 MB.      2.571%. FC
+        219.433 MB in Total
+Feature Memory Written per operator type:
+        70.8155 MB.    54.6573%. Mul
+        55.3273 MB.    42.7031%. Conv
+        3.41594 MB.    2.63651%. Add
+          0.004 MB. 0.00308731%. FC
+        129.563 MB in Total
+Parameter Memory per operator type:
+        30.4721 MB.    84.3913%. Conv
+          5.636 MB.    15.6087%. FC
+              0 MB.          0%. Add
+              0 MB.          0%. Mul
+        36.1081 MB in Total
+```
+
 ## MobileNet-V3
 
 ### Unoptimized

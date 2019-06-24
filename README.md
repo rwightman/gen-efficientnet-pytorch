@@ -5,7 +5,7 @@ A 'generic' implementation of EfficientNet, MobileNet, etc. that covers most of 
 ## Models
 
 Implemented models include:
-  * EfficientNet (B0-B4) (https://arxiv.org/abs/1905.11946) -- validated, compat with TF weights
+  * EfficientNet (B0-B5) (https://arxiv.org/abs/1905.11946) -- validated, compat with TF weights
   * MNASNet B1, A1 (Squeeze-Excite), and Small (https://arxiv.org/abs/1807.11626)
   * MobileNet-V1 (https://arxiv.org/abs/1704.04861)
   * MobileNet-V2 (https://arxiv.org/abs/1801.04381)
@@ -18,17 +18,19 @@ I originally implemented and trained some these models with code [here](https://
 
 ## Pretrained
 
-I've managed to train several of the models to accuracies at or above the originating papers and official impl. My training code is here: https://github.com/rwightman/pytorch-image-models
+I've managed to train several of the models to accuracies close to or above the originating papers and official impl. My training code is here: https://github.com/rwightman/pytorch-image-models
 
 
-|Model | Prec@1 (Err) | Prec@5 (Err) | Param#(M) | MAdds(M) | Image Scaling | Resolution |
-|---|---|---|---|---|---|---|
-| efficientnet_b0 | 76.912 (23.088) | 93.210 (6.790) | 5.3 | 390 | bicubic | 224x224 |
-| mobilenetv3_100 | 75.634 (24.366) | 92.708 (7.292) | 5.5 | 219 | bicubic | 224x224 |
-| mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.9 | 312 | bicubic | 224x224 |
-| fbnetc_100 | 75.124 (24.876) | 92.386 (7.614) | 5.6 | 385 | bilinear | 224x224 |
-| mnasnet_b1 | 74.658 (25.342) | 92.114 (7.886) | 4.4 | 315 | bicubic | 224x224 |
-| spnasnet_100 | 74.084 (25.916)  | 91.818 (8.182) | 4.4 | ? | bilinear | 224x224 |
+|Model | Prec@1 (Err) | Prec@5 (Err) | Param#(M) | MAdds(M) | Image Scaling | Resolution | Crop |
+|---|---|---|---|---|---|---|---|
+| efficientnet_b2 | 79.668 (20.332) | 94.634 (5.366) | 9.1 | 1003 | bicubic | 260x260 | 0.890 |
+| efficientnet_b1 | 78.692 (21.308) | 94.086 (5.914) | 7.8 | 694 | bicubic | 240x240 | 0.882 |
+| efficientnet_b0 | 76.912 (23.088) | 93.210 (6.790) | 5.3 | 390 | bicubic | 224x224 | 0.875 |
+| mobilenetv3_100 | 75.634 (24.366) | 92.708 (7.292) | 5.5 | 219 | bicubic | 224x224 | 0.875 |
+| mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.9 | 312 | bicubic | 224x224 | 0.875 |
+| fbnetc_100 | 75.124 (24.876) | 92.386 (7.614) | 5.6 | 385 | bilinear | 224x224 | 0.875 |
+| mnasnet_b1 | 74.658 (25.342) | 92.114 (7.886) | 4.4 | 315 | bicubic | 224x224 | 0.875 |
+| spnasnet_100 | 74.084 (25.916)  | 91.818 (8.182) | 4.4 | TBV | bilinear | 224x224 | 0.875 |
 
 
 More pretrained models to come...
