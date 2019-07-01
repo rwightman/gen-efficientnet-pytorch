@@ -74,7 +74,7 @@ Models can be accessed via the PyTorch Hub API
 ```
 >>> torch.hub.list('rwightman/gen-efficientnet-pytorch')
 ['efficientnet_b0', ...]
->>> model = torch.hub.load('rwightman/gen-efficientnet-pytorch', efficientnet_b0', pretrained=True)
+>>> model = torch.hub.load('rwightman/gen-efficientnet-pytorch', 'efficientnet_b0', pretrained=True)
 >>> model.eval()
 >>> output = model(torch.randn(1,3,224,224))
 ```
