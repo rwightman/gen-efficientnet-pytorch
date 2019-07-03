@@ -243,7 +243,11 @@ class EfficientNetBuilder:
         self.bn_eps = bn_eps
         self.folded_bn = folded_bn
         self.padding_same = padding_same
+
+        # updated during build
         self.in_chs = None
+        self.block_idx = 0
+        self.block_count = 0
 
     def _round_channels(self, chs):
         return round_channels(chs, self.channel_multiplier, self.channel_divisor, self.channel_min)
@@ -259,12 +263,12 @@ class EfficientNetBuilder:
         # block act fn overrides the model default
         ba['act_fn'] = ba['act_fn'] if ba['act_fn'] is not None else self.act_fn
         if bt == 'ir':
-            ba['drop_connect_rate'] = self.drop_connect_rate
+            ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
             ba['se_gate_fn'] = self.se_gate_fn
             ba['se_reduce_mid'] = self.se_reduce_mid
             block = InvertedResidual(**ba)
         elif bt == 'ds' or bt == 'dsa':
-            ba['drop_connect_rate'] = self.drop_connect_rate
+            ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
             block = DepthwiseSeparableConv(**ba)
         elif bt == 'cn':
             block = ConvBnAct(**ba)
@@ -276,12 +280,13 @@ class EfficientNetBuilder:
     def _make_stack(self, stack_args):
         blocks = []
         # each stack (stage) contains a list of block arguments
-        for block_idx, ba in enumerate(stack_args):
-            if block_idx >= 1:
+        for bi, ba in enumerate(stack_args):
+            if bi >= 1:
                 # only the first block in any stack/stage can have a stride > 1
                 ba['stride'] = 1
             block = self._make_block(ba)
             blocks.append(block)
+            self.block_idx += 1  # incr global idx (across all stacks)
         return nn.Sequential(*blocks)
 
     def __call__(self, in_chs, block_args):
@@ -294,6 +299,8 @@ class EfficientNetBuilder:
              List of block stacks (each stack wrapped in nn.Sequential)
         """
         self.in_chs = in_chs
+        self.block_count = sum([len(x) for x in block_args])
+        self.block_idx = 0
         blocks = []
         # outer list of arch_args defines the stacks ('stages' by some conventions)
         for stack_idx, stack in enumerate(block_args):

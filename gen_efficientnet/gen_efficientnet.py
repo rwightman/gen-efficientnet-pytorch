@@ -62,7 +62,7 @@ model_urls = {
     'efficientnet_b1':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_b1-533bc792.pth',
     'efficientnet_b2':
-        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_b2-d4105846.pth',
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_b2-cf78dc4d.pth',
     'efficientnet_b3': None,
     'efficientnet_b4': None,
     'efficientnet_b5': None,
