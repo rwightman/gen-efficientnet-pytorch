@@ -6,6 +6,7 @@ A 'generic' implementation of EfficientNet, MobileNet, etc. that covers most of 
 
 Implemented models include:
   * EfficientNet (B0-B5) (https://arxiv.org/abs/1905.11946) -- validated, compat with TF weights
+  * MixNet (https://arxiv.org/abs/1907.09595) -- validated, compat with TF weights
   * MNASNet B1, A1 (Squeeze-Excite), and Small (https://arxiv.org/abs/1807.11626)
   * MobileNet-V1 (https://arxiv.org/abs/1704.04861)
   * MobileNet-V2 (https://arxiv.org/abs/1801.04381)
@@ -91,7 +92,7 @@ Scripts to export models to ONNX and then to Caffe2 are included, along with a C
 
 As an example, to export the MobileNet-V3 pretrained model and then run an Imagenet validation:
 ```
-python onnx_export.py --model mobilenetv3_100
+python onnx_export.py --model mobilenetv3_100 ./mobilnetv3_100.onnx
 python onnx_to_caffe.py ./mobilenetv3_100.onnx --c2-prefix mobilenetv3
 python caffe2_validate.py /imagenet/validation/ --c2-init ./mobilenetv3.init.pb --c2-predict ./mobilenetv3.predict.pb --interpolation bicubic
 ```
