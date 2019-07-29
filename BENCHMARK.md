@@ -3,7 +3,7 @@
 All benchmarks run as per:
 
 ```
-python onnx_export.py --model mobilenetv3_100
+python onnx_export.py --model mobilenetv3_100 ./mobilenetv3_100.onnx
 python onnx_optimize.py ./mobilenetv3_100.onnx --output mobilenetv3_100-opt.onnx
 python onnx_to_caffe.py ./mobilenetv3_100.onnx --c2-prefix mobilenetv3
 python onnx_to_caffe.py ./mobilenetv3_100-opt.onnx --c2-prefix mobilenetv3-opt
@@ -169,6 +169,61 @@ Parameter Memory per operator type:
               0 MB.          0%. Add
               0 MB.          0%. Mul
         36.1081 MB in Total
+```
+
+## MixNet-M
+### Optimized
+```
+Main run finished. Milliseconds per iter: 63.1122. Iters per second: 15.8448
+Time per operator type:
+        48.1139 ms.    75.2052%. Conv
+         7.1341 ms.    11.1511%. Sigmoid
+        2.63706 ms.    4.12189%. SpatialBN
+        1.73186 ms.    2.70701%. Mul
+        1.38707 ms.    2.16809%. Split
+        1.29322 ms.    2.02139%. Concat
+        1.00093 ms.    1.56452%. Relu
+       0.235309 ms.   0.367803%. Add
+       0.221579 ms.   0.346343%. FC
+       0.219315 ms.   0.342803%. AveragePool
+     0.00250145 ms. 0.00390993%. Squeeze
+        63.9768 ms in Total
+FLOP per operator type:
+       0.675273 GFLOP.    95.5827%. Conv
+      0.0221072 GFLOP.    3.12921%. SpatialBN
+     0.00538445 GFLOP.   0.762152%. Mul
+       0.003073 GFLOP.   0.434973%. FC
+    0.000642488 GFLOP.  0.0909421%. Add
+              0 GFLOP.          0%. Concat
+              0 GFLOP.          0%. Relu
+        0.70648 GFLOP in Total
+Feature Memory Read per operator type:
+        46.8424 MB.     30.502%. Conv
+        36.8626 MB.    24.0036%. Mul
+        22.3152 MB.    14.5309%. SpatialBN
+        22.1074 MB.    14.3955%. Concat
+        14.1496 MB.    9.21372%. Relu
+        6.15414 MB.    4.00735%. FC
+         5.1399 MB.    3.34692%. Add
+        153.571 MB in Total
+Feature Memory Written per operator type:
+        32.7672 MB.    28.4331%. Conv
+        22.1072 MB.    19.1831%. Concat
+        22.1072 MB.    19.1831%. SpatialBN
+        21.5378 MB.     18.689%. Mul
+        14.1496 MB.    12.2781%. Relu
+        2.56995 MB.    2.23003%. Add
+          0.004 MB. 0.00347092%. FC
+        115.243 MB in Total
+Parameter Memory per operator type:
+        13.7059 MB.     68.674%. Conv
+          6.148 MB.    30.8049%. FC
+          0.104 MB.   0.521097%. SpatialBN
+              0 MB.          0%. Add
+              0 MB.          0%. Concat
+              0 MB.          0%. Mul
+              0 MB.          0%. Relu
+        19.9579 MB in Total
 ```
 
 ## MobileNet-V3
