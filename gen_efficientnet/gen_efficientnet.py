@@ -1,7 +1,8 @@
 """ Generic Efficient Networks
 
 A generic MobileNet class with building blocks to support a variety of models:
-* EfficientNet (B0-B4 + Tensorflow pretrained ports)
+* EfficientNet (B0-B5 + Tensorflow pretrained ports)
+* MixNet (Small, Medium, and Large)
 * MNasNet B1, A1 (SE), Small
 * MobileNet V1, V2, and V3
 * FBNet-C (TODO A & B)
@@ -22,11 +23,12 @@ from .efficientnet_builder import *
 
 __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_b1', 'mnasnet_140',
            'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'mnasnet_a1', 'semnasnet_140',
-           'mnasnet_small', 'tflite_mnasnet_b1', 'tflite_mnasnet_a1', 'mobilenetv1_100', 'mobilenetv2_100',
+           'mnasnet_small', 'mobilenetv1_100', 'mobilenetv2_100',
            'mobilenetv3_050', 'mobilenetv3_075', 'mobilenetv3_100', 'chamnetv1_100', 'chamnetv2_100',
            'fbnetc_100', 'spnasnet_100', 'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2',
            'efficientnet_b3', 'efficientnet_b4', 'efficientnet_b5', 'tf_efficientnet_b0', 'tf_efficientnet_b1',
-           'tf_efficientnet_b2', 'tf_efficientnet_b3', 'tf_efficientnet_b4', 'tf_efficientnet_b5']
+           'tf_efficientnet_b2', 'tf_efficientnet_b3', 'tf_efficientnet_b4', 'tf_efficientnet_b5',
+           'mixnet_s', 'mixnet_m', 'mixnet_l', 'tf_mixnet_s', 'tf_mixnet_m', 'tf_mixnet_l']
 
 
 model_urls = {
@@ -34,15 +36,11 @@ model_urls = {
     'mnasnet_075': None,
     'mnasnet_100':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mnasnet_b1-74cb7081.pth',
-    'tflite_mnasnet_100':
-        'https://www.dropbox.com/s/q55ir3tx8mpeyol/tflite_mnasnet_100-31639cdc.pth?dl=1',
     'mnasnet_140': None,
     'semnasnet_050': None,
     'semnasnet_075': None,
     'semnasnet_100':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mnasnet_a1-d9418771.pth',
-    'tflite_semnasnet_100':
-        'https://www.dropbox.com/s/yiori47sr9dydev/tflite_semnasnet_100-7c780429.pth?dl=1',
     'semnasnet_140': None,
     'mnasnet_small': None,
     'mobilenetv1_100': None,
@@ -78,6 +76,15 @@ model_urls = {
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b4-74ee3bed.pth',
     'tf_efficientnet_b5':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b5-c6949ce9.pth',
+    'mixnet_s': None,
+    'mixnet_m': None,
+    'mixnet_l': None,
+    'tf_mixnet_s':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_mixnet_s-89d3354b.pth',
+    'tf_mixnet_m':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_mixnet_m-0f4d8805.pth',
+    'tf_mixnet_l':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_mixnet_l-6c92e0c8.pth',
 
 }
 
@@ -86,7 +93,8 @@ class GenEfficientNet(nn.Module):
     """ Generic Efficent Networks
 
     An implementation of mobile optimized networks that covers:
-      * EfficientNet
+      * EfficientNet (B0-B5)
+      * MixNet (Small, Medium, and Large)
       * MobileNet V1, V2, and V3
       * MNASNet A1, B1, and small
       * FBNet C
@@ -96,38 +104,33 @@ class GenEfficientNet(nn.Module):
 
     def __init__(self, block_args, num_classes=1000, in_chans=3, stem_size=32, num_features=1280,
                  channel_multiplier=1.0, channel_divisor=8, channel_min=None,
-                 bn_momentum=BN_MOMENTUM_DEFAULT, bn_eps=BN_EPS_DEFAULT, drop_rate=0.,
-                 drop_connect_rate=0., act_fn=F.relu, se_gate_fn=torch.sigmoid, se_reduce_mid=False,
-                 head_conv='default', weight_init='goog', folded_bn=False, padding_same=False):
+                 pad_type='', act_fn=F.relu, drop_rate=0., drop_connect_rate=0.,
+                 se_gate_fn=sigmoid, se_reduce_mid=False, bn_args=BN_ARGS_PT,
+                 head_conv='default', weight_init='goog'):
         super(GenEfficientNet, self).__init__()
         self.drop_rate = drop_rate
         self.act_fn = act_fn
 
         stem_size = round_channels(stem_size, channel_multiplier, channel_divisor, channel_min)
-        self.conv_stem = sconv2d(
-            in_chans, stem_size, 3,
-            padding=padding_arg(1, padding_same), stride=2, bias=folded_bn)
-        self.bn1 = None if folded_bn else nn.BatchNorm2d(stem_size, momentum=bn_momentum, eps=bn_eps)
+        self.conv_stem = select_conv2d(in_chans, stem_size, 3, stride=2, padding=pad_type)
+        self.bn1 = nn.BatchNorm2d(stem_size, **bn_args)
         in_chs = stem_size
 
         builder = EfficientNetBuilder(
             channel_multiplier, channel_divisor, channel_min,
-            drop_connect_rate, act_fn, se_gate_fn, se_reduce_mid,
-            bn_momentum, bn_eps, folded_bn, padding_same)
+            pad_type, act_fn, se_gate_fn, se_reduce_mid,
+            bn_args, drop_connect_rate)
         self.blocks = nn.Sequential(*builder(in_chs, block_args))
         in_chs = builder.in_chs
 
         if not head_conv or head_conv == 'none':
             self.efficient_head = False
             self.conv_head = None
-            assert in_chs == num_features
+            assert in_chs == self.num_features
         else:
             self.efficient_head = head_conv == 'efficient'
-            self.conv_head = sconv2d(
-                in_chs, num_features, 1,
-                padding=padding_arg(0, padding_same), bias=folded_bn and not self.efficient_head)
-            self.bn2 = None if (folded_bn or self.efficient_head) else \
-                nn.BatchNorm2d(num_features, momentum=bn_momentum, eps=bn_eps)
+            self.conv_head = select_conv2d(in_chs, num_features, 1, padding=pad_type)
+            self.bn2 = None if self.efficient_head else nn.BatchNorm2d(num_features, **bn_args)
 
         self.classifier = nn.Linear(num_features, num_classes)
 
@@ -139,21 +142,19 @@ class GenEfficientNet(nn.Module):
 
     def features(self, x):
         x = self.conv_stem(x)
-        if self.bn1 is not None:
-            x = self.bn1(x)
-        x = self.act_fn(x)
+        x = self.bn1(x)
+        x = self.act_fn(x, inplace=True)
         x = self.blocks(x)
         if self.efficient_head:
             x = F.adaptive_avg_pool2d(x, 1)
             x = self.conv_head(x)
             # no BN
-            x = self.act_fn(x)
+            x = self.act_fn(x, inplace=True)
         else:
             if self.conv_head is not None:
                 x = self.conv_head(x)
-                if self.bn2 is not None:
-                    x = self.bn2(x)
-                x = self.act_fn(x)
+                x = self.bn2(x)
+                x = self.act_fn(x, inplace=True)
             x = F.adaptive_avg_pool2d(x, 1)
         return x
 
@@ -173,23 +174,18 @@ class GenEfficientNet(nn.Module):
 # .9997 (/w .999 in search space) for paper
 _BN_MOMENTUM_TF_DEFAULT = 1 - 0.99
 _BN_EPS_TF_DEFAULT = 1e-3
+BN_ARGS_TF = dict(momentum=_BN_MOMENTUM_TF_DEFAULT, eps=_BN_EPS_TF_DEFAULT)
 
 
-def _resolve_bn_params(kwargs):
-    # NOTE kwargs passed as dict intentionally
-    bn_momentum_default = BN_MOMENTUM_DEFAULT
-    bn_eps_default = BN_EPS_DEFAULT
-    bn_tf = kwargs.pop('bn_tf', False)
-    if bn_tf:
-        bn_momentum_default = _BN_MOMENTUM_TF_DEFAULT
-        bn_eps_default = _BN_EPS_TF_DEFAULT
+def _resolve_bn_args(kwargs):
+    bn_args = BN_ARGS_TF.copy() if kwargs.pop('bn_tf', False) else BN_ARGS_PT.copy()
     bn_momentum = kwargs.pop('bn_momentum', None)
+    if bn_momentum is not None:
+        bn_args['momentum'] = bn_momentum
     bn_eps = kwargs.pop('bn_eps', None)
-    if bn_momentum is None:
-        bn_momentum = bn_momentum_default
-    if bn_eps is None:
-        bn_eps = bn_eps_default
-    return bn_momentum, bn_eps
+    if bn_eps is not None:
+        bn_args['eps'] = bn_eps
+    return bn_args
 
 
 def _initialize_weight_goog(m):
@@ -245,7 +241,6 @@ def _gen_mnasnet_a1(depth_multiplier, num_classes=1000, **kwargs):
         # stage 6, 7x7 in
         ['ir_r1_k3_s1_e6_c320'],
     ]
-    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
     model = GenEfficientNet(
         decode_arch_def(arch_def),
         num_classes=num_classes,
@@ -253,8 +248,7 @@ def _gen_mnasnet_a1(depth_multiplier, num_classes=1000, **kwargs):
         channel_multiplier=depth_multiplier,
         channel_divisor=8,
         channel_min=None,
-        bn_momentum=bn_momentum,
-        bn_eps=bn_eps,
+        bn_args=_resolve_bn_args(kwargs),
         **kwargs
     )
     return model
@@ -285,7 +279,6 @@ def _gen_mnasnet_b1(depth_multiplier, num_classes=1000, **kwargs):
         # stage 6, 7x7 in
         ['ir_r1_k3_s1_e6_c320_noskip']
     ]
-    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
     model = GenEfficientNet(
         decode_arch_def(arch_def),
         num_classes=num_classes,
@@ -293,8 +286,7 @@ def _gen_mnasnet_b1(depth_multiplier, num_classes=1000, **kwargs):
         channel_multiplier=depth_multiplier,
         channel_divisor=8,
         channel_min=None,
-        bn_momentum=bn_momentum,
-        bn_eps=bn_eps,
+        bn_args=_resolve_bn_args(kwargs),
         **kwargs
     )
     return model
@@ -318,7 +310,6 @@ def _gen_mnasnet_small(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r3_k5_s2_e6_c88_se0.25'],
         ['ir_r1_k3_s1_e6_c144']
     ]
-    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
     model = GenEfficientNet(
         decode_arch_def(arch_def),
         num_classes=num_classes,
@@ -326,8 +317,7 @@ def _gen_mnasnet_small(depth_multiplier, num_classes=1000, **kwargs):
         channel_multiplier=depth_multiplier,
         channel_divisor=8,
         channel_min=None,
-        bn_momentum=bn_momentum,
-        bn_eps=bn_eps,
+        bn_args=_resolve_bn_args(kwargs),
         **kwargs
     )
     return model
@@ -345,7 +335,6 @@ def _gen_mobilenet_v1(depth_multiplier, num_classes=1000, **kwargs):
         ['dsa_r6_k3_s2_c512'],
         ['dsa_r2_k3_s2_c1024'],
     ]
-    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
     model = GenEfficientNet(
         decode_arch_def(arch_def),
         num_classes=num_classes,
@@ -354,8 +343,7 @@ def _gen_mobilenet_v1(depth_multiplier, num_classes=1000, **kwargs):
         channel_multiplier=depth_multiplier,
         channel_divisor=8,
         channel_min=None,
-        bn_momentum=bn_momentum,
-        bn_eps=bn_eps,
+        bn_args=_resolve_bn_args(kwargs),
         act_fn=F.relu6,
         head_conv='none',
         **kwargs
@@ -377,7 +365,6 @@ def _gen_mobilenet_v2(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r3_k3_s2_e6_c160'],
         ['ir_r1_k3_s1_e6_c320'],
     ]
-    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
     model = GenEfficientNet(
         decode_arch_def(arch_def),
         num_classes=num_classes,
@@ -385,8 +372,7 @@ def _gen_mobilenet_v2(depth_multiplier, num_classes=1000, **kwargs):
         channel_multiplier=depth_multiplier,
         channel_divisor=8,
         channel_min=None,
-        bn_momentum=bn_momentum,
-        bn_eps=bn_eps,
+        bn_args=_resolve_bn_args(kwargs),
         act_fn=F.relu6,
         **kwargs
     )
@@ -404,11 +390,11 @@ def _gen_mobilenet_v3(depth_multiplier, num_classes=1000, **kwargs):
     """
     arch_def = [
         # stage 0, 112x112 in
-        ['ds_r1_k3_s1_e1_c16_are_noskip'],  # relu
+        ['ds_r1_k3_s1_e1_c16_nre_noskip'],  # relu
         # stage 1, 112x112 in
-        ['ir_r1_k3_s2_e4_c24_are', 'ir_r1_k3_s1_e3_c24_are'],  # relu
+        ['ir_r1_k3_s2_e4_c24_nre', 'ir_r1_k3_s1_e3_c24_nre'],  # relu
         # stage 2, 56x56 in
-        ['ir_r3_k5_s2_e3_c40_se0.25_are'],  # relu
+        ['ir_r3_k5_s2_e3_c40_se0.25_nre'],  # relu
         # stage 3, 28x28 in
         ['ir_r1_k3_s2_e6_c80', 'ir_r1_k3_s1_e2.5_c80', 'ir_r2_k3_s1_e2.3_c80'],  # hard-swish
         # stage 4, 14x14in
@@ -418,7 +404,6 @@ def _gen_mobilenet_v3(depth_multiplier, num_classes=1000, **kwargs):
         # stage 6, 7x7 in
         ['cn_r1_k1_s1_c960'],  # hard-swish
     ]
-    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
     model = GenEfficientNet(
         decode_arch_def(arch_def),
         num_classes=num_classes,
@@ -426,8 +411,7 @@ def _gen_mobilenet_v3(depth_multiplier, num_classes=1000, **kwargs):
         channel_multiplier=depth_multiplier,
         channel_divisor=8,
         channel_min=None,
-        bn_momentum=bn_momentum,
-        bn_eps=bn_eps,
+        bn_args=_resolve_bn_args(kwargs),
         act_fn=hard_swish,
         se_gate_fn=hard_sigmoid,
         se_reduce_mid=True,
@@ -454,7 +438,6 @@ def _gen_chamnet_v1(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r4_k3_s2_e7_c152'],
         ['ir_r1_k3_s1_e10_c104'],
     ]
-    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
     model = GenEfficientNet(
         decode_arch_def(arch_def),
         num_classes=num_classes,
@@ -463,8 +446,7 @@ def _gen_chamnet_v1(depth_multiplier, num_classes=1000, **kwargs):
         channel_multiplier=depth_multiplier,
         channel_divisor=8,
         channel_min=None,
-        bn_momentum=bn_momentum,
-        bn_eps=bn_eps,
+        bn_args=_resolve_bn_args(kwargs),
         **kwargs
     )
     return model
@@ -487,7 +469,6 @@ def _gen_chamnet_v2(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r6_k3_s2_e2_c152'],
         ['ir_r1_k3_s1_e6_c112'],
     ]
-    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
     model = GenEfficientNet(
         decode_arch_def(arch_def),
         num_classes=num_classes,
@@ -496,8 +477,7 @@ def _gen_chamnet_v2(depth_multiplier, num_classes=1000, **kwargs):
         channel_multiplier=depth_multiplier,
         channel_divisor=8,
         channel_min=None,
-        bn_momentum=bn_momentum,
-        bn_eps=bn_eps,
+        bn_args=_resolve_bn_args(kwargs),
         **kwargs
     )
     return model
@@ -521,7 +501,6 @@ def _gen_fbnetc(depth_multiplier, num_classes=1000, **kwargs):
         ['ir_r4_k5_s2_e6_c184'],
         ['ir_r1_k3_s1_e6_c352'],
     ]
-    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
     model = GenEfficientNet(
         decode_arch_def(arch_def),
         num_classes=num_classes,
@@ -530,8 +509,7 @@ def _gen_fbnetc(depth_multiplier, num_classes=1000, **kwargs):
         channel_multiplier=depth_multiplier,
         channel_divisor=8,
         channel_min=None,
-        bn_momentum=bn_momentum,
-        bn_eps=bn_eps,
+        bn_args=_resolve_bn_args(kwargs),
         **kwargs
     )
     return model
@@ -561,7 +539,6 @@ def _gen_spnasnet(depth_multiplier, num_classes=1000, **kwargs):
         # stage 6, 7x7 in
         ['ir_r1_k3_s1_e6_c320_noskip']
     ]
-    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
     model = GenEfficientNet(
         decode_arch_def(arch_def),
         num_classes=num_classes,
@@ -569,8 +546,7 @@ def _gen_spnasnet(depth_multiplier, num_classes=1000, **kwargs):
         channel_multiplier=depth_multiplier,
         channel_divisor=8,
         channel_min=None,
-        bn_momentum=bn_momentum,
-        bn_eps=bn_eps,
+        bn_args=_resolve_bn_args(kwargs),
         **kwargs
     )
     return model
@@ -607,7 +583,6 @@ def _gen_efficientnet(channel_multiplier=1.0, depth_multiplier=1.0, num_classes=
         ['ir_r4_k5_s2_e6_c192_se0.25'],
         ['ir_r1_k3_s1_e6_c320_se0.25'],
     ]
-    bn_momentum, bn_eps = _resolve_bn_params(kwargs)
     model = GenEfficientNet(
         decode_arch_def(arch_def, depth_multiplier),
         num_classes=num_classes,
@@ -616,9 +591,80 @@ def _gen_efficientnet(channel_multiplier=1.0, depth_multiplier=1.0, num_classes=
         channel_divisor=8,
         channel_min=None,
         num_features=round_channels(1280, channel_multiplier, 8, None),
-        bn_momentum=bn_momentum,
-        bn_eps=bn_eps,
+        bn_args=_resolve_bn_args(kwargs),
         act_fn=swish,
+        **kwargs
+    )
+    return model
+
+
+def _gen_mixnet_s(channel_multiplier=1.0, num_classes=1000, **kwargs):
+    """Creates a MixNet Small model.
+
+    Ref impl: https://github.com/tensorflow/tpu/tree/master/models/official/mnasnet/mixnet
+    Paper: https://arxiv.org/abs/1907.09595
+    """
+    arch_def = [
+        # stage 0, 112x112 in
+        ['ds_r1_k3_s1_e1_c16'],  # relu
+        # stage 1, 112x112 in
+        ['ir_r1_k3_a1.1_p1.1_s2_e6_c24', 'ir_r1_k3_a1.1_p1.1_s1_e3_c24'],  # relu
+        # stage 2, 56x56 in
+        ['ir_r1_k3.5.7_s2_e6_c40_se0.5_nsw', 'ir_r3_k3.5_a1.1_p1.1_s1_e6_c40_se0.5_nsw'],  # swish
+        # stage 3, 28x28 in
+        ['ir_r1_k3.5.7_p1.1_s2_e6_c80_se0.25_nsw', 'ir_r2_k3.5_p1.1_s1_e6_c80_se0.25_nsw'],  # swish
+        # stage 4, 14x14in
+        ['ir_r1_k3.5.7_a1.1_p1.1_s1_e6_c120_se0.5_nsw', 'ir_r2_k3.5.7.9_a1.1_p1.1_s1_e3_c120_se0.5_nsw'],  # swish
+        # stage 5, 14x14in
+        ['ir_r1_k3.5.7.9.11_s2_e6_c200_se0.5_nsw', 'ir_r2_k3.5.7.9_p1.1_s1_e6_c200_se0.5_nsw'],  # swish
+        # 7x7
+    ]
+    model = GenEfficientNet(
+        decode_arch_def(arch_def),
+        num_classes=num_classes,
+        stem_size=16,
+        num_features=1536,
+        channel_multiplier=channel_multiplier,
+        channel_divisor=8,
+        channel_min=None,
+        bn_args=_resolve_bn_args(kwargs),
+        act_fn=F.relu,
+        **kwargs
+    )
+    return model
+
+
+def _gen_mixnet_m(channel_multiplier=1.0, num_classes=1000, **kwargs):
+    """Creates a MixNet Medium-Large model.
+
+    Ref impl: https://github.com/tensorflow/tpu/tree/master/models/official/mnasnet/mixnet
+    Paper: https://arxiv.org/abs/1907.09595
+    """
+    arch_def = [
+        # stage 0, 112x112 in
+        ['ds_r1_k3_s1_e1_c24'],  # relu
+        # stage 1, 112x112 in
+        ['ir_r1_k3.5.7_a1.1_p1.1_s2_e6_c32', 'ir_r1_k3_a1.1_p1.1_s1_e3_c32'],  # relu
+        # stage 2, 56x56 in
+        ['ir_r1_k3.5.7.9_s2_e6_c40_se0.5_nsw', 'ir_r3_k3.5_a1.1_p1.1_s1_e6_c40_se0.5_nsw'],  # swish
+        # stage 3, 28x28 in
+        ['ir_r1_k3.5.7_s2_e6_c80_se0.25_nsw', 'ir_r3_k3.5.7.9_a1.1_p1.1_s1_e6_c80_se0.25_nsw'],  # swish
+        # stage 4, 14x14in
+        ['ir_r1_k3_s1_e6_c120_se0.5_nsw', 'ir_r3_k3.5.7.9_a1.1_p1.1_s1_e3_c120_se0.5_nsw'],  # swish
+        # stage 5, 14x14in
+        ['ir_r1_k3.5.7.9_s2_e6_c200_se0.5_nsw', 'ir_r3_k3.5.7.9_p1.1_s1_e6_c200_se0.5_nsw'],  # swish
+        # 7x7
+    ]
+    model = GenEfficientNet(
+        decode_arch_def(arch_def),
+        num_classes=num_classes,
+        stem_size=24,
+        num_features=1536,
+        channel_multiplier=channel_multiplier,
+        channel_divisor=8,
+        channel_min=None,
+        bn_args=_resolve_bn_args(kwargs),
+        act_fn=F.relu,
         **kwargs
     )
     return model
@@ -655,17 +701,6 @@ def mnasnet_b1(pretrained=False, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet-1K
     """
     return mnasnet_100(pretrained, **kwargs)
-
-
-def tflite_mnasnet_b1(pretrained=False, **kwargs):
-    """ MNASNet B1, depth multiplier of 1.0. """
-    # these two args are for compat with tflite pretrained weights
-    kwargs['folded_bn'] = True
-    kwargs['padding_same'] = True
-    model = _gen_mnasnet_b1(1.0, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['tflite_mnasnet_100']))
-    return model
 
 
 def mnasnet_140(pretrained=False, **kwargs):
@@ -711,17 +746,6 @@ def mnasnet_a1(pretrained=False, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet-1K
     """
     return semnasnet_100(pretrained, **kwargs)
-
-
-def tflite_mnasnet_a1(pretrained=False, **kwargs):
-    """ MNASNet A1, depth multiplier of 1.0. """
-    # these two args are for compat with tflite pretrained weights
-    kwargs['folded_bn'] = True
-    kwargs['padding_same'] = True
-    model = _gen_mnasnet_a1(1.0, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['tflite_semnasnet_100']))
-    return model
 
 
 def semnasnet_140(pretrained=False, **kwargs):
@@ -939,3 +963,62 @@ def tf_efficientnet_b5(pretrained=False, **kwargs):
         model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b5']))
     return model
 
+
+def mixnet_s(pretrained=False, **kwargs):
+    """Creates a MixNet Small model.
+    """
+    model = _gen_mixnet_s(channel_multiplier=1.0, **kwargs)
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['tf_mixnet_s']))
+    return model
+
+
+def mixnet_m(pretrained=False, **kwargs):
+    """Creates a MixNet Medium model.
+    """
+    model = _gen_mixnet_m(channel_multiplier=1.0, **kwargs)
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['mixnet_m']))
+    return model
+
+
+def mixnet_l(pretrained=False, **kwargs):
+    """Creates a MixNet Large model.
+    """
+    model = _gen_mixnet_m(channel_multiplier=1.3, **kwargs)
+    #if pretrained:
+    #    model.load_state_dict(load_state_dict_from_url(model_urls['mixnet_l']))
+    return model
+
+
+def tf_mixnet_s(pretrained=False, **kwargs):
+    """Creates a MixNet Small model. Tensorflow compatible variant
+    """
+    kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_mixnet_s(channel_multiplier=1.0, **kwargs)
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['tf_mixnet_s']))
+    return model
+
+
+def tf_mixnet_m(pretrained=False, **kwargs):
+    """Creates a MixNet Medium model. Tensorflow compatible variant
+    """
+    kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_mixnet_m(channel_multiplier=1.0,  **kwargs)
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['tf_mixnet_m']))
+    return model
+
+
+def tf_mixnet_l(pretrained=False, **kwargs):
+    """Creates a MixNet Large model. Tensorflow compatible variant
+    """
+    kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_mixnet_m(channel_multiplier=1.3, **kwargs)
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['tf_mixnet_l']))
+    return model
