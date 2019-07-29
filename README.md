@@ -25,6 +25,7 @@ I've managed to train several of the models to accuracies close to or above the 
 |---|---|---|---|---|---|---|---|
 | efficientnet_b2 | 79.668 (20.332) | 94.634 (5.366) | 9.1 | 1003 | bicubic | 260x260 | 0.890 |
 | efficientnet_b1 | 78.692 (21.308) | 94.086 (5.914) | 7.8 | 694 | bicubic | 240x240 | 0.882 |
+| mixnet_m | 77.256 (22.744) | 93.418 (6.582) | 5.01 | bicubic | 224x224 | 0.875 |
 | efficientnet_b0 | 76.912 (23.088) | 93.210 (6.790) | 5.3 | 390 | bicubic | 224x224 | 0.875 |
 | mobilenetv3_100 | 75.634 (24.366) | 92.708 (7.292) | 5.5 | 219 | bicubic | 224x224 | 0.875 |
 | mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.9 | 312 | bicubic | 224x224 | 0.875 |
@@ -54,12 +55,17 @@ Enabling the Tensorflow preprocessing pipeline with `--tf-preprocessing` at vali
 | tf_efficientnet_b3       | 80.968 (19.032) | 95.274 (4.726) | 12.23 | bicubic | 300x300 | 0.903 |
 | tf_efficientnet_b2 *tfp  | 79.782 (20.218) | 94.800 (5.200) | 9.11 | bicubic | 260x260 | N/A |
 | tf_efficientnet_b2       | 79.606 (20.394) | 94.712 (5.288) | 9.11 | bicubic | 260x260 | 0.89 |
+| tf_mixnet_l *tfp         | 78.846 (21.154) | 94.212 (5.788) | 7.33 | bilinear | 224x224 | N/A |
 | tf_efficientnet_b1 *tfp  | 78.796 (21.204) | 94.232 (5.768) | 7.79 | bicubic | 240x240 | N/A |
+| tf_mixnet_l              | 78.770 (21.230) | 94.004 (5.996) | 7.33 | bicubic | 224x224 | 0.875 |
 | tf_efficientnet_b1       | 78.554 (21.446) | 94.098 (5.902) | 7.79 | bicubic | 240x240 | 0.88 |
+| tf_mixnet_m *tfp         | 77.072 (22.928) | 93.368 (6.632) | 5.01 | bilinear | 224x224 | N/A |
+| tf_mixnet_m              | 76.950 (23.050) | 93.156 (6.844) | 5.01 | bicubic | 224x224 | 0.875 |
 | tf_efficientnet_b0 *tfp  | 76.828 (23.172) | 93.226 (6.774) | 5.29 | bicubic | 224x224 | N/A |
 | tf_efficientnet_b0       | 76.528 (23.472) | 93.010 (6.990) | 5.29 | bicubic | 224x224 | 0.875 |
-| tflite_semnasnet_100     | 73.086 (26.914) | 91.336 (8.664) | 3.87 | bicubic | 224x224 | 0.875 |
-| tflite_mnasnet_100       | 72.398 (27.602) | 90.930 (9.070) |  4.36 | bicubic | 224x224 | 0.875 |
+| tf_mixnet_s *tfp         | 75.800 (24.200) | 92.788 (7.212) | 4.13 | bilinear | 224x224 | N/A |
+| tf_mixnet_s              | 75.648 (24.352) | 92.636 (7.364) | 4.13 | bicubic | 224x224 | 0.875 |
+
 
 *tfp models validated with `tf-preprocessing` pipeline
 

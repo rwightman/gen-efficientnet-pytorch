@@ -77,7 +77,7 @@ model_urls = {
     'tf_efficientnet_b5':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b5-c6949ce9.pth',
     'mixnet_s': None,
-    'mixnet_m': None,
+    'mixnet_m': 'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mixnet_m-4647fc68.pth',
     'mixnet_l': None,
     'tf_mixnet_s':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_mixnet_s-89d3354b.pth',
@@ -126,7 +126,7 @@ class GenEfficientNet(nn.Module):
         if not head_conv or head_conv == 'none':
             self.efficient_head = False
             self.conv_head = None
-            assert in_chs == self.num_features
+            assert in_chs == num_features
         else:
             self.efficient_head = head_conv == 'efficient'
             self.conv_head = select_conv2d(in_chs, num_features, 1, padding=pad_type)
@@ -977,8 +977,8 @@ def mixnet_m(pretrained=False, **kwargs):
     """Creates a MixNet Medium model.
     """
     model = _gen_mixnet_m(channel_multiplier=1.0, **kwargs)
-    #if pretrained:
-    #    model.load_state_dict(load_state_dict_from_url(model_urls['mixnet_m']))
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['mixnet_m']))
     return model
 
 
