@@ -26,7 +26,7 @@ I've managed to train several of the models to accuracies close to or above the 
 |---|---|---|---|---|---|---|---|
 | efficientnet_b2 | 79.668 (20.332) | 94.634 (5.366) | 9.1 | 1003 | bicubic | 260x260 | 0.890 |
 | efficientnet_b1 | 78.692 (21.308) | 94.086 (5.914) | 7.8 | 694 | bicubic | 240x240 | 0.882 |
-| mixnet_m | 77.256 (22.744) | 93.418 (6.582) | 5.01 | bicubic | 224x224 | 0.875 |
+| mixnet_m | 77.256 (22.744) | 93.418 (6.582) | 5.01 | 353 | bicubic | 224x224 | 0.875 |
 | efficientnet_b0 | 76.912 (23.088) | 93.210 (6.790) | 5.3 | 390 | bicubic | 224x224 | 0.875 |
 | mobilenetv3_100 | 75.634 (24.366) | 92.708 (7.292) | 5.5 | 219 | bicubic | 224x224 | 0.875 |
 | mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.9 | 312 | bicubic | 224x224 | 0.875 |
@@ -92,7 +92,7 @@ Scripts to export models to ONNX and then to Caffe2 are included, along with a C
 
 As an example, to export the MobileNet-V3 pretrained model and then run an Imagenet validation:
 ```
-python onnx_export.py --model mobilenetv3_100 ./mobilnetv3_100.onnx
+python onnx_export.py --model mobilenetv3_100 ./mobilenetv3_100.onnx
 python onnx_to_caffe.py ./mobilenetv3_100.onnx --c2-prefix mobilenetv3
 python caffe2_validate.py /imagenet/validation/ --c2-init ./mobilenetv3.init.pb --c2-predict ./mobilenetv3.predict.pb --interpolation bicubic
 ```
