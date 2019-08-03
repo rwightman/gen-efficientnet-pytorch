@@ -5,7 +5,7 @@ A 'generic' implementation of EfficientNet, MobileNet, etc. that covers most of 
 ## Models
 
 Implemented models include:
-  * EfficientNet (B0-B5) (https://arxiv.org/abs/1905.11946) -- validated, compat with TF weights
+  * EfficientNet (B0-B7) (https://arxiv.org/abs/1905.11946) -- validated, compat with TF weights
   * MixNet (https://arxiv.org/abs/1907.09595) -- validated, compat with TF weights
   * MNASNet B1, A1 (Squeeze-Excite), and Small (https://arxiv.org/abs/1807.11626)
   * MobileNet-V1 (https://arxiv.org/abs/1704.04861)
@@ -24,15 +24,17 @@ I've managed to train several of the models to accuracies close to or above the 
 
 |Model | Prec@1 (Err) | Prec@5 (Err) | Param#(M) | MAdds(M) | Image Scaling | Resolution | Crop |
 |---|---|---|---|---|---|---|---|
-| efficientnet_b2 | 79.668 (20.332) | 94.634 (5.366) | 9.1 | 1003 | bicubic | 260x260 | 0.890 |
-| efficientnet_b1 | 78.692 (21.308) | 94.086 (5.914) | 7.8 | 694 | bicubic | 240x240 | 0.882 |
-| mixnet_m | 77.256 (22.744) | 93.418 (6.582) | 5.01 | 353 | bicubic | 224x224 | 0.875 |
-| efficientnet_b0 | 76.912 (23.088) | 93.210 (6.790) | 5.3 | 390 | bicubic | 224x224 | 0.875 |
-| mobilenetv3_100 | 75.634 (24.366) | 92.708 (7.292) | 5.5 | 219 | bicubic | 224x224 | 0.875 |
-| mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.9 | 312 | bicubic | 224x224 | 0.875 |
-| fbnetc_100 | 75.124 (24.876) | 92.386 (7.614) | 5.6 | 385 | bilinear | 224x224 | 0.875 |
-| mnasnet_b1 | 74.658 (25.342) | 92.114 (7.886) | 4.4 | 315 | bicubic | 224x224 | 0.875 |
-| spnasnet_100 | 74.084 (25.916)  | 91.818 (8.182) | 4.4 | TBV | bilinear | 224x224 | 0.875 |
+| mixnet_l | 78.976 (21.024 | 94.184 (5.816) | 7.33 | TBD | bicubic | 224 | 0.875 |
+| efficientnet_b2 | 79.668 (20.332) | 94.634 (5.366) | 9.1 | 1003 | bicubic | 260 | 0.890 |
+| efficientnet_b1 | 78.692 (21.308) | 94.086 (5.914) | 7.8 | 694 | bicubic | 240 | 0.882 |
+| mixnet_m | 77.256 (22.744) | 93.418 (6.582) | 5.01 | 353 | bicubic | 224 | 0.875 |
+| efficientnet_b0 | 76.912 (23.088) | 93.210 (6.790) | 5.3 | 390 | bicubic | 224 | 0.875 |
+| mixnet_s | 75.988 (24.012) | 92.794 (7.206) | 4.13 | TBD | bicubic | 224 | 0.875 |
+| mobilenetv3_100 | 75.634 (24.366) | 92.708 (7.292) | 5.5 | 219 | bicubic | 224 | 0.875 |
+| mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.9 | 312 | bicubic | 224 | 0.875 |
+| fbnetc_100 | 75.124 (24.876) | 92.386 (7.614) | 5.6 | 385 | bilinear | 224 | 0.875 |
+| mnasnet_b1 | 74.658 (25.342) | 92.114 (7.886) | 4.4 | 315 | bicubic | 224 | 0.875 |
+| spnasnet_100 | 74.084 (25.916)  | 91.818 (8.182) | 4.4 | TBV | bilinear | 224 | 0.875 |
 
 
 More pretrained models to come...
@@ -44,28 +46,32 @@ I ported the Tensorflow MNASNet weights to verify sanity of my model. For some r
 
 The weights ported from Tensorflow checkpoints for the EfficientNet models do pretty much match accuracy in Tensorflow once a SAME convolution padding equivalent is added, and the same crop factors, image scaling, etc are used.
 
-Enabling the Tensorflow preprocessing pipeline with `--tf-preprocessing` at validaiton time will improve these scores by 0.1-0.5% as it's closer to what these models were trained with.
+Enabling the Tensorflow preprocessing pipeline with `--tf-preprocessing` at validation time will improve these scores by 0.1-0.5% as it's closer to what these models were trained with.
 
-|Model | Prec@1 (Err) | Prec@5 (Err) | Param # | Image Scaling  | Resolution | Crop | 
+|Model | Prec@1 (Err) | Prec@5 (Err) | Param # | Image Scaling  | Image Size | Crop | 
 |---|---|---|---|---|---|---|
-| tf_efficientnet_b5 *tfp  | 83.200 (16.800) | 96.456 (3.544) | 30.39 | bicubic | 456x456 | N/A |
-| tf_efficientnet_b5       | 83.176 (16.824) | 96.536 (3.464) | 30.39 | bicubic | 456x456 | 0.934 |
-| tf_efficientnet_b4       | 82.604 (17.396) | 96.128 (3.872) | 19.34 | bicubic | 380x380 | 0.922 |
-| tf_efficientnet_b4 *tfp  | 82.604 (17.396) | 96.094 (3.906) | 19.34 | bicubic | 380x380 | N/A |
-| tf_efficientnet_b3 *tfp  | 80.982 (19.018) | 95.332 (4.668) | 12.23 | bicubic | 300x300 | N/A |
-| tf_efficientnet_b3       | 80.968 (19.032) | 95.274 (4.726) | 12.23 | bicubic | 300x300 | 0.903 |
-| tf_efficientnet_b2 *tfp  | 79.782 (20.218) | 94.800 (5.200) | 9.11 | bicubic | 260x260 | N/A |
-| tf_efficientnet_b2       | 79.606 (20.394) | 94.712 (5.288) | 9.11 | bicubic | 260x260 | 0.89 |
-| tf_mixnet_l *tfp         | 78.846 (21.154) | 94.212 (5.788) | 7.33 | bilinear | 224x224 | N/A |
-| tf_efficientnet_b1 *tfp  | 78.796 (21.204) | 94.232 (5.768) | 7.79 | bicubic | 240x240 | N/A |
-| tf_mixnet_l              | 78.770 (21.230) | 94.004 (5.996) | 7.33 | bicubic | 224x224 | 0.875 |
-| tf_efficientnet_b1       | 78.554 (21.446) | 94.098 (5.902) | 7.79 | bicubic | 240x240 | 0.88 |
-| tf_mixnet_m *tfp         | 77.072 (22.928) | 93.368 (6.632) | 5.01 | bilinear | 224x224 | N/A |
-| tf_mixnet_m              | 76.950 (23.050) | 93.156 (6.844) | 5.01 | bicubic | 224x224 | 0.875 |
-| tf_efficientnet_b0 *tfp  | 76.828 (23.172) | 93.226 (6.774) | 5.29 | bicubic | 224x224 | N/A |
-| tf_efficientnet_b0       | 76.528 (23.472) | 93.010 (6.990) | 5.29 | bicubic | 224x224 | 0.875 |
-| tf_mixnet_s *tfp         | 75.800 (24.200) | 92.788 (7.212) | 4.13 | bilinear | 224x224 | N/A |
-| tf_mixnet_s              | 75.648 (24.352) | 92.636 (7.364) | 4.13 | bicubic | 224x224 | 0.875 |
+| tf_efficientnet_b7 *tfp  | 84.480 (15.520) | 96.870 (3.130) | 66.35 | bicubic | 600 | N/A |
+| tf_efficientnet_b7       | 84.420 (15.580) | 96.906 (3.094) | 66.35 | bicubic | 600 | 0.949 |
+| tf_efficientnet_b6 *tfp  | 84.140 (15.860) | 96.852 (3.148) | 43.04 | bicubic | 528 | N/A |
+| tf_efficientnet_b6       | 84.110 (15.890) | 96.886 (3.114) | 43.04 | bicubic | 528 | 0.942 |
+| tf_efficientnet_b5 *tfp  | 83.694 (16.306) | 96.696 (3.304) | 30.39 | bicubic | 456 | N/A |
+| tf_efficientnet_b5       | 83.688 (16.312) | 96.714 (3.286) | 30.39 | bicubic | 456 | 0.934 |
+| tf_efficientnet_b4       | 83.022 (16.978) | 96.300 (3.700) | 19.34 | bicubic | 380 | 0.922 |
+| tf_efficientnet_b4 *tfp  | 82.948 (17.052) | 96.308 (3.692) | 19.34 | bicubic | 380 | N/A |
+| tf_efficientnet_b3 *tfp  | 81.576 (18.424) | 95.662 (4.338) | 12.23 | bicubic | 300 | N/A |
+| tf_efficientnet_b3       | 81.636 (18.364) | 95.718 (4.282) | 12.23 | bicubic | 300 | 0.903 |
+| tf_efficientnet_b2 *tfp  | 80.188 (19.812) | 94.974 (5.026) | 9.11 | bicubic | 260 | N/A |
+| tf_efficientnet_b2       | 80.086 (19.914) | 94.908 (5.092) | 9.11 | bicubic | 260 | 0.890 |
+| tf_efficientnet_b1 *tfp  | 79.172 (20.828) | 94.450 (5.550) | 7.79 | bicubic | 240  N/A |
+| tf_mixnet_l *tfp         | 78.846 (21.154) | 94.212 (5.788) | 7.33 | bilinear | 224 | N/A |
+| tf_efficientnet_b1       | 78.826 (21.174) | 94.198 (5.802) | 7.79 | bicubic | 240 | 0.88 |
+| tf_mixnet_l              | 78.770 (21.230) | 94.004 (5.996) | 7.33 | bicubic | 224 | 0.875 |
+| tf_efficientnet_b0 *tfp  | 77.258 (22.742) | 93.478 (6.522) | 5.29  | bicubic | 224 | N/A |
+| tf_mixnet_m *tfp         | 77.072 (22.928) | 93.368 (6.632) | 5.01 | bilinear | 224 | N/A |
+| tf_mixnet_m              | 76.950 (23.050) | 93.156 (6.844) | 5.01 | bicubic | 224 | 0.875 |
+| tf_efficientnet_b0       | 76.848 (23.152) | 93.228 (6.772) | 5.29  | bicubic | 224 | 0.875 |
+| tf_mixnet_s *tfp         | 75.800 (24.200) | 92.788 (7.212) | 4.13 | bilinear | 224 | N/A |
+| tf_mixnet_s              | 75.648 (24.352) | 92.636 (7.364) | 4.13 | bicubic | 224 | 0.875 |
 
 
 *tfp models validated with `tf-preprocessing` pipeline

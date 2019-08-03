@@ -23,11 +23,11 @@ from .efficientnet_builder import *
 
 __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_b1', 'mnasnet_140',
            'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'mnasnet_a1', 'semnasnet_140',
-           'mnasnet_small', 'mobilenetv1_100', 'mobilenetv2_100',
-           'mobilenetv3_050', 'mobilenetv3_075', 'mobilenetv3_100', 'chamnetv1_100', 'chamnetv2_100',
-           'fbnetc_100', 'spnasnet_100', 'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2',
-           'efficientnet_b3', 'efficientnet_b4', 'efficientnet_b5', 'tf_efficientnet_b0', 'tf_efficientnet_b1',
-           'tf_efficientnet_b2', 'tf_efficientnet_b3', 'tf_efficientnet_b4', 'tf_efficientnet_b5',
+           'mnasnet_small', 'mobilenetv1_100', 'mobilenetv2_100', 'mobilenetv3_050', 'mobilenetv3_075',
+           'mobilenetv3_100', 'chamnetv1_100', 'chamnetv2_100', 'fbnetc_100', 'spnasnet_100', 'efficientnet_b0',
+           'efficientnet_b1', 'efficientnet_b2', 'efficientnet_b3', 'efficientnet_b4', 'efficientnet_b5',
+           'tf_efficientnet_b0', 'tf_efficientnet_b1', 'tf_efficientnet_b2', 'tf_efficientnet_b3',
+           'tf_efficientnet_b4', 'tf_efficientnet_b5', 'tf_efficientnet_b6', 'tf_efficientnet_b7',
            'mixnet_s', 'mixnet_m', 'mixnet_l', 'tf_mixnet_s', 'tf_mixnet_m', 'tf_mixnet_l']
 
 
@@ -65,20 +65,24 @@ model_urls = {
     'efficientnet_b4': None,
     'efficientnet_b5': None,
     'tf_efficientnet_b0':
-        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b0-0af12548.pth',
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b0_aa-827b6e33.pth',
     'tf_efficientnet_b1':
-        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b1-5c1377c4.pth',
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b1_aa-ea7a6ee0.pth',
     'tf_efficientnet_b2':
-        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b2-e393ef04.pth',
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b2_aa-60c94f97.pth',
     'tf_efficientnet_b3':
-        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b3-e3bd6955.pth',
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b3_aa-84b4657e.pth',
     'tf_efficientnet_b4':
-        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b4-74ee3bed.pth',
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b4_aa-818f208c.pth',
     'tf_efficientnet_b5':
-        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b5-c6949ce9.pth',
-    'mixnet_s': None,
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b5_aa-99018a74.pth',
+    'tf_efficientnet_b6':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b6_aa-80ba17e4.pth',
+    'tf_efficientnet_b7':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b7_aa-076e3472.pth',
+    'mixnet_s': 'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mixnet_s-a907afbc.pth',
     'mixnet_m': 'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mixnet_m-4647fc68.pth',
-    'mixnet_l': None,
+    'mixnet_l': 'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mixnet_l-5a9a2ed8.pth',
     'tf_mixnet_s':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_mixnet_s-89d3354b.pth',
     'tf_mixnet_m':
@@ -907,7 +911,7 @@ def efficientnet_b5(pretrained=False, **kwargs):
 def tf_efficientnet_b0(pretrained=False, **kwargs):
     """ EfficientNet-B0. Tensorflow compatible variant  """
     kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
-    kwargs['padding_same'] = True
+    kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(channel_multiplier=1.0, depth_multiplier=1.0, **kwargs)
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b0']))
@@ -917,7 +921,7 @@ def tf_efficientnet_b0(pretrained=False, **kwargs):
 def tf_efficientnet_b1(pretrained=False, **kwargs):
     """ EfficientNet-B1. Tensorflow compatible variant  """
     kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
-    kwargs['padding_same'] = True
+    kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(channel_multiplier=1.0, depth_multiplier=1.1, **kwargs)
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b1']))
@@ -927,7 +931,7 @@ def tf_efficientnet_b1(pretrained=False, **kwargs):
 def tf_efficientnet_b2(pretrained=False, **kwargs):
     """ EfficientNet-B2. Tensorflow compatible variant  """
     kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
-    kwargs['padding_same'] = True
+    kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(channel_multiplier=1.1, depth_multiplier=1.2, **kwargs)
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b2']))
@@ -937,7 +941,7 @@ def tf_efficientnet_b2(pretrained=False, **kwargs):
 def tf_efficientnet_b3(pretrained=False, **kwargs):
     """ EfficientNet-B3. Tensorflow compatible variant """
     kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
-    kwargs['padding_same'] = True
+    kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(channel_multiplier=1.2, depth_multiplier=1.4, **kwargs)
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b3']))
@@ -947,7 +951,7 @@ def tf_efficientnet_b3(pretrained=False, **kwargs):
 def tf_efficientnet_b4(pretrained=False, **kwargs):
     """ EfficientNet-B4. Tensorflow compatible variant """
     kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
-    kwargs['padding_same'] = True
+    kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(channel_multiplier=1.4, depth_multiplier=1.8, **kwargs)
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b4']))
@@ -957,10 +961,30 @@ def tf_efficientnet_b4(pretrained=False, **kwargs):
 def tf_efficientnet_b5(pretrained=False, **kwargs):
     """ EfficientNet-B5. Tensorflow compatible variant """
     kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
-    kwargs['padding_same'] = True
+    kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(channel_multiplier=1.6, depth_multiplier=2.2, **kwargs)
     if pretrained:
         model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b5']))
+    return model
+
+
+def tf_efficientnet_b6(pretrained=False, **kwargs):
+    """ EfficientNet-B6. Tensorflow compatible variant """
+    kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(channel_multiplier=1.8, depth_multiplier=2.6, **kwargs)
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b6']))
+    return model
+
+
+def tf_efficientnet_b7(pretrained=False, **kwargs):
+    """ EfficientNet-B7. Tensorflow compatible variant """
+    kwargs['bn_eps'] = _BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(channel_multiplier=2.0, depth_multiplier=3.1, **kwargs)
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['tf_efficientnet_b7']))
     return model
 
 
@@ -968,8 +992,8 @@ def mixnet_s(pretrained=False, **kwargs):
     """Creates a MixNet Small model.
     """
     model = _gen_mixnet_s(channel_multiplier=1.0, **kwargs)
-    #if pretrained:
-    #    model.load_state_dict(load_state_dict_from_url(model_urls['tf_mixnet_s']))
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['tf_mixnet_s']))
     return model
 
 
@@ -986,8 +1010,8 @@ def mixnet_l(pretrained=False, **kwargs):
     """Creates a MixNet Large model.
     """
     model = _gen_mixnet_m(channel_multiplier=1.3, **kwargs)
-    #if pretrained:
-    #    model.load_state_dict(load_state_dict_from_url(model_urls['mixnet_l']))
+    if pretrained:
+        model.load_state_dict(load_state_dict_from_url(model_urls['mixnet_l']))
     return model
 
 
