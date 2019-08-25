@@ -20,6 +20,9 @@ from gen_efficientnet import tf_efficientnet_b4
 from gen_efficientnet import tf_efficientnet_b5
 from gen_efficientnet import tf_efficientnet_b6
 from gen_efficientnet import tf_efficientnet_b7
+from gen_efficientnet import tf_efficientnet_es
+from gen_efficientnet import tf_efficientnet_em
+from gen_efficientnet import tf_efficientnet_el
 from gen_efficientnet import tf_mixnet_s
 from gen_efficientnet import tf_mixnet_m
 from gen_efficientnet import tf_mixnet_l

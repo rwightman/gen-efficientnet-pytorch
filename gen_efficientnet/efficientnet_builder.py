@@ -217,6 +217,58 @@ class InvertedResidual(nn.Module):
         return x
 
 
+class EdgeResidual(nn.Module):
+    """ EdgeTPU Residual block with expansion convolution followed by pointwise-linear w/ stride"""
+
+    def __init__(self, in_chs, out_chs, exp_kernel_size=3, exp_ratio=1.0, fake_in_chs=0,
+                 stride=1, pad_type='', act_fn=F.relu, noskip=False, pw_kernel_size=1,
+                 se_ratio=0., se_reduce_mid=False, se_gate_fn=sigmoid,
+                 bn_args=BN_ARGS_PT, drop_connect_rate=0.):
+        super(EdgeResidual, self).__init__()
+        mid_chs = int(fake_in_chs * exp_ratio) if fake_in_chs > 0 else int(in_chs * exp_ratio)
+        self.has_se = se_ratio is not None and se_ratio > 0.
+        self.has_residual = (in_chs == out_chs and stride == 1) and not noskip
+        self.act_fn = act_fn
+        self.drop_connect_rate = drop_connect_rate
+
+        # Expansion convolution
+        self.conv_exp = select_conv2d(in_chs, mid_chs, exp_kernel_size, padding=pad_type)
+        self.bn1 = nn.BatchNorm2d(mid_chs, **bn_args)
+
+        # Squeeze-and-excitation
+        if self.has_se:
+            se_base_chs = mid_chs if se_reduce_mid else in_chs
+            self.se = SqueezeExcite(
+                mid_chs, reduce_chs=max(1, int(se_base_chs * se_ratio)), act_fn=act_fn, gate_fn=se_gate_fn)
+
+        # Point-wise linear projection
+        self.conv_pwl = select_conv2d(mid_chs, out_chs, pw_kernel_size, stride=stride, padding=pad_type)
+        self.bn2 = nn.BatchNorm2d(out_chs, **bn_args)
+
+    def forward(self, x):
+        residual = x
+
+        # Expansion convolution
+        x = self.conv_exp(x)
+        x = self.bn1(x)
+        x = self.act_fn(x, inplace=True)
+
+        # Squeeze-and-excitation
+        if self.has_se:
+            x = self.se(x)
+
+        # Point-wise linear projection
+        x = self.conv_pwl(x)
+        x = self.bn2(x)
+
+        if self.has_residual:
+            if self.drop_connect_rate > 0.:
+                x = drop_connect(x, self.training, self.drop_connect_rate)
+            x += residual
+
+        return x
+
+
 class EfficientNetBuilder:
     """ Build Trunk Blocks for Efficient/Mobile Networks
 
@@ -252,6 +304,9 @@ class EfficientNetBuilder:
         bt = ba.pop('block_type')
         ba['in_chs'] = self.in_chs
         ba['out_chs'] = self._round_channels(ba['out_chs'])
+        if 'fake_in_chs' in ba and ba['fake_in_chs']:
+            # FIXME this is a hack to work around mismatch in origin impl input filters for EdgeTPU
+            ba['fake_in_chs'] = self._round_channels(ba['fake_in_chs'])
         ba['bn_args'] = self.bn_args
         ba['pad_type'] = self.pad_type
         # block act fn overrides the model default
@@ -265,6 +320,11 @@ class EfficientNetBuilder:
         elif bt == 'ds' or bt == 'dsa':
             ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
             block = DepthwiseSeparableConv(**ba)
+        elif bt == 'er':
+            ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
+            ba['se_gate_fn'] = self.se_gate_fn
+            ba['se_reduce_mid'] = self.se_reduce_mid
+            block = EdgeResidual(**ba)
         elif bt == 'cn':
             block = ConvBnAct(**ba)
         else:
@@ -373,6 +433,7 @@ def _decode_block_str(block_str, depth_multiplier=1.0):
     act_fn = options['n'] if 'n' in options else None
     exp_kernel_size = _parse_ksize(options['a']) if 'a' in options else 1
     pw_kernel_size = _parse_ksize(options['p']) if 'p' in options else 1
+    fake_in_chs = int(options['fc']) if 'fc' in options else 0  # FIXME hack to deal with in_chs issue in TPU def
 
     num_repeat = int(options['r'])
     # each type of block has different valid arguments, fill accordingly
@@ -400,6 +461,19 @@ def _decode_block_str(block_str, depth_multiplier=1.0):
             act_fn=act_fn,
             pw_act=block_type == 'dsa',
             noskip=block_type == 'dsa' or noskip,
+        )
+    elif block_type == 'er':
+        block_args = dict(
+            block_type=block_type,
+            exp_kernel_size=_parse_ksize(options['k']),
+            pw_kernel_size=pw_kernel_size,
+            out_chs=int(options['c']),
+            exp_ratio=float(options['e']),
+            fake_in_chs=fake_in_chs,
+            se_ratio=float(options['se']) if 'se' in options else None,
+            stride=int(options['s']),
+            act_fn=act_fn,
+            noskip=noskip,
         )
     elif block_type == 'cn':
         block_args = dict(
