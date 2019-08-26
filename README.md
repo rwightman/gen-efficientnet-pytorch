@@ -111,5 +111,5 @@ python onnx_export.py --model mobilenetv3_100 ./mobilenetv3_100.onnx
 python onnx_to_caffe.py ./mobilenetv3_100.onnx --c2-prefix mobilenetv3
 python caffe2_validate.py /imagenet/validation/ --c2-init ./mobilenetv3.init.pb --c2-predict ./mobilenetv3.predict.pb --interpolation bicubic
 ```
-**NOTE** the ported weights with the 'SAME' conv padding activated cannot be exported to ONNX. You'd be better off porting from the TF model -> ONNX or other deployment format in this case anyways.
+**NOTE** the TF ported weights with the 'SAME' conv padding activated cannot be exported to ONNX unless `_EXPORTABLE` flag in `conv2d_helpers.py` is set to True.
 

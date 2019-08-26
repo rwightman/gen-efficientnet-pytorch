@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
+# Set to True if exporting a model with Same padding via ONNX
+_EXPORTABLE = False
+
 
 def _is_static_pad(kernel_size, stride=1, dilation=1, **_):
     return stride == 1 and (dilation * (kernel_size - 1)) % 2 == 0
@@ -17,6 +20,14 @@ def _calc_same_pad(i, k, s, d):
     return max((math.ceil(i / s) - 1) * s + (k - 1) * d + 1 - i, 0)
 
 
+def _same_pad_arg(input_size, kernel_size, stride, dilation):
+    ih, iw = input_size
+    kh, kw = kernel_size
+    pad_h = _calc_same_pad(ih, kh, stride[0], dilation[0])
+    pad_w = _calc_same_pad(iw, kw, stride[1], dilation[1])
+    return [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2]
+
+
 def _split_channels(num_chan, num_groups):
     split = [num_chan // num_groups for _ in range(num_groups)]
     split[0] += num_chan - sum(split)
@@ -29,15 +40,34 @@ class Conv2dSame(nn.Conv2d):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
                  padding=0, dilation=1, groups=1, bias=True):
         super(Conv2dSame, self).__init__(
-            in_channels, out_channels, kernel_size, stride, 0, dilation,
-            groups, bias)
+            in_channels, out_channels, kernel_size, stride, 0, dilation, groups, bias)
 
     def forward(self, x):
-        ih, iw = x.size()[-2:]
-        kh, kw = self.weight.size()[-2:]
-        pad_h = _calc_same_pad(ih, kh, self.stride[0], self.dilation[0])
-        pad_w = _calc_same_pad(iw, kw, self.stride[1], self.dilation[1])
-        x = F.pad(x, [pad_w//2, pad_w - pad_w//2, pad_h//2, pad_h - pad_h//2])
+        x = F.pad(x, _same_pad_arg(x.size()[-2:], self.weight.size()[-2:], self.stride, self.dilation))
+        return F.conv2d(
+            x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
+
+
+class Conv2dSameExport(nn.Conv2d):
+    """ ONNX export friendly Tensorflow like 'SAME' convolution wrapper for 2D convolutions
+    """
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1,
+                 padding=0, dilation=1, groups=1, bias=True):
+        super(Conv2dSameExport, self).__init__(
+            in_channels, out_channels, kernel_size, stride, 0, dilation, groups, bias)
+        self.pad = None
+        self.pad_input_size = (0, 0)
+
+    def forward(self, x):
+        input_size = x.size()[-2:]
+        if self.pad is None:
+            pad_arg = _same_pad_arg(input_size, self.weight.size()[-2:], self.stride, self.dilation)
+            self.pad = nn.ZeroPad2d(pad_arg)
+            self.pad_input_size = input_size
+        else:
+            assert self.pad_input_size == input_size
+
+        x = self.pad(x)
         return F.conv2d(
             x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
 
@@ -56,7 +86,10 @@ def conv2d_pad(in_chs, out_chs, kernel_size, **kwargs):
                 return nn.Conv2d(in_chs, out_chs, kernel_size, padding=padding, **kwargs)
             else:
                 # dynamic padding
-                return Conv2dSame(in_chs, out_chs, kernel_size, **kwargs)
+                if _EXPORTABLE:
+                    return Conv2dSameExport(in_chs, out_chs, kernel_size, **kwargs)
+                else:
+                    return Conv2dSame(in_chs, out_chs, kernel_size, **kwargs)
         elif padding == 'valid':
             # 'VALID' padding, same as padding=0
             return nn.Conv2d(in_chs, out_chs, kernel_size, padding=0, **kwargs)

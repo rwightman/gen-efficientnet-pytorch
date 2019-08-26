@@ -58,7 +58,7 @@ def main():
         predict_net_proto.ParseFromString(f.read())
     model.net = core.Net(predict_net_proto)  # model.net.AppendNet(core.Net(predict_net_proto))
 
-    data_config = resolve_data_config('mobilenetv3_100', args)
+    data_config = resolve_data_config(args.model, args)
     loader = create_loader(
         Dataset(args.data, load_bytes=args.tf_preprocessing),
         input_size=data_config['input_size'],

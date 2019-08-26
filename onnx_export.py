@@ -47,6 +47,7 @@ def main():
     model.eval()
 
     x = torch.randn((1, 3, args.img_size or 224, args.img_size or 224), requires_grad=True)
+    model(x)  # run model once before export trace
 
     print("==> Exporting model to ONNX format at '{}'".format(args.output))
     input_names = ["input0"]
@@ -66,6 +67,7 @@ def main():
     c2_out = caffe2_backend.run(B)[0]
     np.testing.assert_almost_equal(torch_out.data.numpy(), c2_out, decimal=5)
     print("==> Passed")
+
 
 if __name__ == '__main__':
     main()
