@@ -34,6 +34,8 @@ def main():
 
     if not args.checkpoint:
         args.pretrained = True
+    else:
+        args.pretrained = False
 
     # create model
     print("==> Creating PyTorch {} model".format(args.model))
