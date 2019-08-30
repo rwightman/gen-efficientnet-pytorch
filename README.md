@@ -16,7 +16,7 @@ Implemented models include:
   * FBNet-C (https://arxiv.org/abs/1812.03443) -- TODO A/B variants
   * Single-Path NAS (https://arxiv.org/abs/1904.02877) -- pixel1 variant
     
-I originally implemented and trained some these models with code [here](https://github.com/rwightman/pytorch-image-models), this repository contains just the GenMobileNet models, validation, and associated ONNX/Caffe2 export code. 
+I originally implemented and trained some these models with code [here](https://github.com/rwightman/pytorch-image-models), this repository contains just the GenEfficientNet models, validation, and associated ONNX/Caffe2 export code. 
 
 ## Pretrained
 
@@ -43,11 +43,15 @@ More pretrained models to come...
 
 ## Ported Weights
 
-I ported the Tensorflow MNASNet weights to verify sanity of my model. For some reason I can't hit the stated accuracy with my port Google's tflite weights. Using a TF equivalent to 'SAME' padding was important to get > 70%, but something small is still missing.
+The weights ported from Tensorflow checkpoints for the EfficientNet models do pretty much match accuracy in Tensorflow once a SAME convolution padding equivalent is added, and the same crop factors, image scaling, etc (see table) are used via cmd line args.
 
-The weights ported from Tensorflow checkpoints for the EfficientNet models do pretty much match accuracy in Tensorflow once a SAME convolution padding equivalent is added, and the same crop factors, image scaling, etc are used.
+Ex, to run validation for tf_efficientnet_b5:
+`python validate.py /path/to/imagenet/validation/ --model tf_efficientnet_b5 -b 64 --img-size 456 --crop-pct 0.934 --interpolation bicubic`
 
 Enabling the Tensorflow preprocessing pipeline with `--tf-preprocessing` at validation time will improve these scores by 0.1-0.5% as it's closer to what these models were trained with.
+
+Ex, to run validation w/ TF preprocessing for tf_efficientnet_b5:
+`python validate.py /path/to/imagenet/validation/ --model tf_efficientnet_b5 -b 64 --img-size 456 --tf-preprocessing`
 
 EdgeTPU models use different normalization consts. Use Inception style 0.5, 0.5, 0.5 for mean and std.
 
