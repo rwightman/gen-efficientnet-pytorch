@@ -100,5 +100,10 @@ venv.bak/
 # mkdocs documentation
 /site
 
+# pytorch stuff
+*.pth
+*.onnx
+*.pb
+
 trained_models/
 .fuse_hidden*

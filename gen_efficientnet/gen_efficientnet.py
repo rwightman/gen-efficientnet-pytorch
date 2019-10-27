@@ -23,10 +23,9 @@ from .layers import Flatten
 from .efficientnet_builder import *
 
 __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_b1', 'mnasnet_140',
-           'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'mnasnet_a1', 'semnasnet_140',
-           'mnasnet_small', 'chamnetv1_100', 'chamnetv2_100', 'fbnetc_100', 'spnasnet_100', 'efficientnet_b0',
-           'efficientnet_b1', 'efficientnet_b2', 'efficientnet_b3', 'efficientnet_b4', 'efficientnet_b5',
-           'efficientnet_es', 'efficientnet_em', 'efficientnet_el',
+           'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'mnasnet_a1', 'semnasnet_140', 'mnasnet_small',
+           'fbnetc_100', 'spnasnet_100', 'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2',  'efficientnet_b3',
+           'efficientnet_b4', 'efficientnet_b5', 'efficientnet_es', 'efficientnet_em', 'efficientnet_el',
            'tf_efficientnet_b0', 'tf_efficientnet_b1', 'tf_efficientnet_b2', 'tf_efficientnet_b3',
            'tf_efficientnet_b4', 'tf_efficientnet_b5', 'tf_efficientnet_b6', 'tf_efficientnet_b7',
            'tf_efficientnet_es', 'tf_efficientnet_em', 'tf_efficientnet_el',
@@ -630,22 +629,6 @@ def fbnetc_100(pretrained=False, **kwargs):
     return model
 
 
-def chamnetv1_100(pretrained=False, **kwargs):
-    """ ChamNet """
-    model = _gen_chamnet_v1(1.0, **kwargs)
-    #if pretrained:
-    #    model.load_state_dict(load_state_dict_from_url(model_urls['chamnetv1_100']))
-    return model
-
-
-def chamnetv2_100(pretrained=False, **kwargs):
-    """ ChamNet """
-    model = _gen_chamnet_v2(1.0, **kwargs)
-    #if pretrained:
-    #    model.load_state_dict(load_state_dict_from_url(model_urls['chamnetv2_100']))
-    return model
-
-
 def spnasnet_100(pretrained=False, **kwargs):
     """ Single-Path NAS Pixel1"""
     model = _gen_spnasnet(1.0, **kwargs)
@@ -845,7 +828,7 @@ def tf_efficientnet_el(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_cc_b0_4e(pretrained=False, **kwargs):
-    """ EfficientNet-B0 """
+    """ EfficientNet-CondConv-B0 w/ 4 Experts """
     # NOTE for train, drop_rate should be 0.2
     #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
@@ -857,7 +840,7 @@ def tf_efficientnet_cc_b0_4e(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_cc_b0_8e(pretrained=False, **kwargs):
-    """ EfficientNet-B0 """
+    """ EfficientNet-CondConv-B0 w/ 8 Experts """
     # NOTE for train, drop_rate should be 0.2
     #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
@@ -869,7 +852,7 @@ def tf_efficientnet_cc_b0_8e(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_cc_b1_8e(pretrained=False, **kwargs):
-    """ EfficientNet-B0 """
+    """ EfficientNet-CondConv-B1 w/ 8 Experts"""
     # NOTE for train, drop_rate should be 0.2
     #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT

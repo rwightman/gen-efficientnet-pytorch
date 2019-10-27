@@ -5,7 +5,7 @@ import re
 from copy import deepcopy
 from functools import partial
 
-from .conv2d_helpers import *
+from .conv2d_layers import *
 from .activations import *
 
 # Default args for PyTorch BN impl
