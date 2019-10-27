@@ -24,20 +24,20 @@ class MobileNetV3(nn.Module):
     def __init__(self, block_args, num_classes=1000, in_chans=3, stem_size=32, num_features=1280,
                  channel_multiplier=1.0, channel_divisor=8, channel_min=None,
                  pad_type='', act_layer=nn.ReLU, drop_rate=0., drop_connect_rate=0.,
-                 se_gate_fn=sigmoid, se_reduce_mid=False, bn_args=BN_ARGS_PT, weight_init='goog'):
+                 se_gate_fn=sigmoid, se_reduce_mid=False, norm_kwargs=BN_ARGS_PT, weight_init='goog'):
         super(MobileNetV3, self).__init__()
         self.drop_rate = drop_rate
 
         stem_size = round_channels(stem_size, channel_multiplier, channel_divisor, channel_min)
         self.conv_stem = select_conv2d(in_chans, stem_size, 3, stride=2, padding=pad_type)
-        self.bn1 = nn.BatchNorm2d(stem_size, **bn_args)
+        self.bn1 = nn.BatchNorm2d(stem_size, **norm_kwargs)
         self.act1 = act_layer(inplace=True)
         in_chs = stem_size
 
         builder = EfficientNetBuilder(
             channel_multiplier, channel_divisor, channel_min,
             pad_type, act_layer, se_gate_fn, se_reduce_mid,
-            bn_args, drop_connect_rate)
+            norm_kwargs, drop_connect_rate)
         self.blocks = nn.Sequential(*builder(in_chs, block_args))
         in_chs = builder.in_chs
 
@@ -78,7 +78,17 @@ class MobileNetV3(nn.Module):
         return self.classifier(x)
 
 
-def _gen_mobilenet_v3(channel_multiplier, num_classes=1000, **kwargs):
+def _create_model(model_kwargs, variant, pretrained=False):
+    as_sequential = model_kwargs.pop('as_sequential', False)
+    model = MobileNetV3(**model_kwargs)
+    if pretrained and model_urls[variant]:
+        model.load_state_dict(load_state_dict_from_url(model_urls[variant]))
+    if as_sequential:
+        model = model.as_sequential()
+    return model
+
+
+def _gen_mobilenet_v3(variant, channel_multiplier=1.0, pretrained=False, **kwargs):
     """Creates a MobileNet-V3 model.
 
     Ref impl: ?
@@ -103,48 +113,36 @@ def _gen_mobilenet_v3(channel_multiplier, num_classes=1000, **kwargs):
         # stage 6, 7x7 in
         ['cn_r1_k1_s1_c960'],  # hard-swish
     ]
-    model = MobileNetV3(
-        decode_arch_def(arch_def),
-        num_classes=num_classes,
+    model_kwargs = dict(
+        block_args=decode_arch_def(arch_def),
         stem_size=16,
         channel_multiplier=channel_multiplier,
-        channel_divisor=8,
-        channel_min=None,
-        bn_args=resolve_bn_args(kwargs),
+        norm_kwargs=resolve_bn_args(kwargs),
         act_layer=HardSwish,
         se_gate_fn=hard_sigmoid,
         se_reduce_mid=True,
-        **kwargs
+        **kwargs,
     )
+    model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
 def mobilenetv3_050(pretrained=False, **kwargs):
     """ MobileNet V3 """
-    model = _gen_mobilenet_v3(0.5, **kwargs)
-    #if pretrained:
-    #    model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv3_050']))
+    model = _gen_mobilenet_v3('mobilenetv3_050', 0.5, pretrained=pretrained, **kwargs)
     return model
 
 
 def mobilenetv3_075(pretrained=False, **kwargs):
     """ MobileNet V3 """
-    model = _gen_mobilenet_v3(0.75, **kwargs)
-    #if pretrained:
-    #    model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv3_075']))
+    model = _gen_mobilenet_v3('mobilenetv3_075', 0.75, pretrained=pretrained, **kwargs)
     return model
 
 
 def mobilenetv3_100(pretrained=False, **kwargs):
-    """ Constructs a MobileNet-V3 100 (depth_multiplier == 1.0) model
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet-1K
-    """
-    if pretrained and 'bn_eps' not in kwargs:
+    """ MobileNet V3 """
+    if pretrained:
         # pretrained model trained with non-default BN epsilon
         kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
-    model = _gen_mobilenet_v3(1.0, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_state_dict_from_url(model_urls['mobilenetv3_100']))
+    model = _gen_mobilenet_v3('mobilenetv3_100', 1.0, pretrained=pretrained, **kwargs)
     return model
