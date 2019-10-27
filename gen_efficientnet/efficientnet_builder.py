@@ -563,6 +563,7 @@ def decode_arch_def(arch_def, depth_multiplier=1.0, depth_trunc='ceil', experts_
 def initialize_weight_goog(m):
     # weight init as per Tensorflow Official impl
     # https://github.com/tensorflow/tpu/blob/master/models/official/mnasnet/mnasnet_model.py
+    # FIXME add CondConv
     if isinstance(m, nn.Conv2d):
         n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels  # fan-out
         m.weight.data.normal_(0, math.sqrt(2.0 / n))
@@ -579,6 +580,7 @@ def initialize_weight_goog(m):
 
 
 def initialize_weight_default(m):
+    # FIXME add CondConv
     if isinstance(m, nn.Conv2d):
         nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
     elif isinstance(m, nn.BatchNorm2d):

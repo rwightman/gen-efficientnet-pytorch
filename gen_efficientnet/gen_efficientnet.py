@@ -61,6 +61,9 @@ model_urls = {
     'efficientnet_es': None,
     'efficientnet_em': None,
     'efficientnet_el': None,
+    'efficientnet_cc_b0_4e': None,
+    'efficientnet_cc_b0_8e': None,
+    'efficientnet_cc_b1_8e': None,
     'tf_efficientnet_b0':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b0_aa-827b6e33.pth',
     'tf_efficientnet_b1':
@@ -106,8 +109,8 @@ class GenEfficientNet(nn.Module):
     """ Generic Efficient Networks
 
     An implementation of mobile optimized networks that covers:
-      * EfficientNet (B0-B5)
-      * MixNet (Small, Medium, and Large)
+      * EfficientNet (B0-B7, CondConv, EdgeTPU)
+      * MixNet (Small, Medium, and Large, XL)
       * MNASNet A1, B1, and small
       * FBNet C
       * Single-Path NAS Pixel1
