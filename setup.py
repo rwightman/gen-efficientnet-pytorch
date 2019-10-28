@@ -10,11 +10,11 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-exec(open('gen_efficientnet/version.py').read())
+exec(open('geffnet/version.py').read())
 setup(
-    name='gen_efficientnet',
+    name='geffnet',
     version=__version__,
-    description='PyTorch (Generic) EfficientNets',
+    description='(Generic) EfficientNets for PyTorch',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/rwightman/gen-efficientnet-pytorch',
@@ -40,7 +40,7 @@ setup(
 
     # Note that this is a string of words separated by whitespace, not a list.
     keywords='pytorch pretrained models efficientnet mixnet mobilenetv3 mnasnet',
-    packages=find_packages(exclude=['convert']),
+    packages=find_packages(exclude=['data']),
     install_requires=['torch >= 1.1', 'torchvision'],
     python_requires='>=3.6',
 )

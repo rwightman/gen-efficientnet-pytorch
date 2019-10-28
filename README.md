@@ -1,4 +1,4 @@
-# PyTorch (Generic) EfficientNets
+# (Generic) EfficientNets for PyTorch
 
 A 'generic' implementation of EfficientNet, MixNet, MobileNetV3, etc. that covers most of the compute/parameter efficient architectures derived from the MobileNet V1/V2 block sequence, including those found via automated neural architecture search. 
 

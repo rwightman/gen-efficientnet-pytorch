@@ -8,7 +8,7 @@ import numpy as np
 import onnx
 import caffe2.python.onnx.backend as onnx_caffe2
 
-from model_factory import create_model
+from geffnet import create_model
 
 torch.backends.cudnn.benchmark = True
 

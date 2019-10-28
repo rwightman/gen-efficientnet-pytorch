@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.parallel
 
-from model_factory import create_model
+from geffnet import create_model
 from data import Dataset, create_loader, resolve_data_config
 from utils import accuracy, AverageMeter
 
