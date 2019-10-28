@@ -124,18 +124,21 @@ def _gen_mobilenet_v3(variant, channel_multiplier=1.0, pretrained=False, **kwarg
 
 def mobilenetv3_050(pretrained=False, **kwargs):
     """ MobileNet V3 """
+    # NOTE for train set drop_rate=0.2
     model = _gen_mobilenet_v3('mobilenetv3_050', 0.5, pretrained=pretrained, **kwargs)
     return model
 
 
 def mobilenetv3_075(pretrained=False, **kwargs):
     """ MobileNet V3 """
+    # NOTE for train set drop_rate=0.2
     model = _gen_mobilenet_v3('mobilenetv3_075', 0.75, pretrained=pretrained, **kwargs)
     return model
 
 
 def mobilenetv3_100(pretrained=False, **kwargs):
     """ MobileNet V3 """
+    # NOTE for train set drop_rate=0.2
     if pretrained:
         # pretrained model trained with non-default BN epsilon
         kwargs['bn_eps'] = BN_EPS_TF_DEFAULT

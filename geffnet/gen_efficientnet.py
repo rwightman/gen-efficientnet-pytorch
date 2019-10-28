@@ -592,8 +592,7 @@ def spnasnet_100(pretrained=False, **kwargs):
 
 def efficientnet_b0(pretrained=False, **kwargs):
     """ EfficientNet-B0 """
-    # NOTE for train, drop_rate should be 0.2
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    # NOTE for train set drop_rate=0.2, drop_connect_rate=0.2
     model = _gen_efficientnet(
         'efficientnet_b0', channel_multiplier=1.0, depth_multiplier=1.0, pretrained=pretrained, **kwargs)
     return model
@@ -601,8 +600,7 @@ def efficientnet_b0(pretrained=False, **kwargs):
 
 def efficientnet_b1(pretrained=False, **kwargs):
     """ EfficientNet-B1 """
-    # NOTE for train, drop_rate should be 0.2
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    # NOTE for train set drop_rate=0.2, drop_connect_rate=0.2
     model = _gen_efficientnet(
         'efficientnet_b1', channel_multiplier=1.0, depth_multiplier=1.1, pretrained=pretrained, **kwargs)
     return model
@@ -610,8 +608,7 @@ def efficientnet_b1(pretrained=False, **kwargs):
 
 def efficientnet_b2(pretrained=False, **kwargs):
     """ EfficientNet-B2 """
-    # NOTE for train, drop_rate should be 0.3
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    # NOTE for train set drop_rate=0.3, drop_connect_rate=0.2
     model = _gen_efficientnet(
         'efficientnet_b2', channel_multiplier=1.1, depth_multiplier=1.2, pretrained=pretrained, **kwargs)
     return model
@@ -619,8 +616,7 @@ def efficientnet_b2(pretrained=False, **kwargs):
 
 def efficientnet_b3(pretrained=False, **kwargs):
     """ EfficientNet-B3 """
-    # NOTE for train, drop_rate should be 0.3
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    # NOTE for train set drop_rate=0.3, drop_connect_rate=0.2
     model = _gen_efficientnet(
         'efficientnet_b3', channel_multiplier=1.2, depth_multiplier=1.4, pretrained=pretrained, **kwargs)
     return model
@@ -628,8 +624,7 @@ def efficientnet_b3(pretrained=False, **kwargs):
 
 def efficientnet_b4(pretrained=False, **kwargs):
     """ EfficientNet-B4 """
-    # NOTE for train, drop_rate should be 0.4
-    #kwargs['drop_connect_rate'] = 0.2  #  set when training, TODO add as cmd arg
+    # NOTE for train set drop_rate=0.4, drop_connect_rate=0.2
     model = _gen_efficientnet(
         'efficientnet_b4', channel_multiplier=1.4, depth_multiplier=1.8, pretrained=pretrained, **kwargs)
     return model
@@ -637,8 +632,7 @@ def efficientnet_b4(pretrained=False, **kwargs):
 
 def efficientnet_b5(pretrained=False, **kwargs):
     """ EfficientNet-B5 """
-    # NOTE for train, drop_rate should be 0.4
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    # NOTE for train set drop_rate=0.4, drop_connect_rate=0.2
     model = _gen_efficientnet(
         'efficientnet_b5', channel_multiplier=1.6, depth_multiplier=2.2, pretrained=pretrained, **kwargs)
     return model
@@ -646,8 +640,7 @@ def efficientnet_b5(pretrained=False, **kwargs):
 
 def efficientnet_b6(pretrained=False, **kwargs):
     """ EfficientNet-B6 """
-    # NOTE for train, drop_rate should be 0.5
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    # NOTE for train set drop_rate=0.5, drop_connect_rate=0.2
     model = _gen_efficientnet(
         'efficientnet_b6', channel_multiplier=1.8, depth_multiplier=2.6, pretrained=pretrained, **kwargs)
     return model
@@ -655,8 +648,7 @@ def efficientnet_b6(pretrained=False, **kwargs):
 
 def efficientnet_b7(pretrained=False, **kwargs):
     """ EfficientNet-B7 """
-    # NOTE for train, drop_rate should be 0.5
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    # NOTE for train set drop_rate=0.5, drop_connect_rate=0.2
     model = _gen_efficientnet(
         'efficientnet_b7', channel_multiplier=2.0, depth_multiplier=3.1, pretrained=pretrained, **kwargs)
     return model
@@ -685,8 +677,7 @@ def efficientnet_el(pretrained=False, **kwargs):
 
 def efficientnet_cc_b0_4e(pretrained=False, **kwargs):
     """ EfficientNet-CondConv-B0 w/ 8 Experts """
-    # NOTE for train, drop_rate should be 0.2
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    # NOTE for train set drop_rate=0.25, drop_connect_rate=0.2
     model = _gen_efficientnet_condconv(
         'efficientnet_cc_b0_4e', channel_multiplier=1.0, depth_multiplier=1.0, pretrained=pretrained, **kwargs)
     return model
@@ -694,8 +685,7 @@ def efficientnet_cc_b0_4e(pretrained=False, **kwargs):
 
 def efficientnet_cc_b0_8e(pretrained=False, **kwargs):
     """ EfficientNet-CondConv-B0 w/ 8 Experts """
-    # NOTE for train, drop_rate should be 0.2
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    # NOTE for train set drop_rate=0.25, drop_connect_rate=0.2
     model = _gen_efficientnet_condconv(
         'efficientnet_cc_b0_8e', channel_multiplier=1.0, depth_multiplier=1.0, experts_multiplier=2,
         pretrained=pretrained, **kwargs)
@@ -704,8 +694,7 @@ def efficientnet_cc_b0_8e(pretrained=False, **kwargs):
 
 def efficientnet_cc_b1_8e(pretrained=False, **kwargs):
     """ EfficientNet-CondConv-B1 w/ 8 Experts """
-    # NOTE for train, drop_rate should be 0.2
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
+    # NOTE for train set drop_rate=0.25, drop_connect_rate=0.2
     model = _gen_efficientnet_condconv(
         'efficientnet_cc_b1_8e', channel_multiplier=1.0, depth_multiplier=1.1, experts_multiplier=2,
         pretrained=pretrained, **kwargs)
@@ -768,7 +757,6 @@ def tf_efficientnet_b5(pretrained=False, **kwargs):
 
 def tf_efficientnet_b6(pretrained=False, **kwargs):
     """ EfficientNet-B6. Tensorflow compatible variant """
-    # NOTE for train, drop_rate should be 0.5
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -778,7 +766,6 @@ def tf_efficientnet_b6(pretrained=False, **kwargs):
 
 def tf_efficientnet_b7(pretrained=False, **kwargs):
     """ EfficientNet-B7. Tensorflow compatible variant """
-    # NOTE for train, drop_rate should be 0.5
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -815,8 +802,6 @@ def tf_efficientnet_el(pretrained=False, **kwargs):
 
 def tf_efficientnet_cc_b0_4e(pretrained=False, **kwargs):
     """ EfficientNet-CondConv-B0 w/ 4 Experts """
-    # NOTE for train, drop_rate should be 0.2
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet_condconv(
@@ -827,8 +812,6 @@ def tf_efficientnet_cc_b0_4e(pretrained=False, **kwargs):
 
 def tf_efficientnet_cc_b0_8e(pretrained=False, **kwargs):
     """ EfficientNet-CondConv-B0 w/ 8 Experts """
-    # NOTE for train, drop_rate should be 0.2
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet_condconv(
@@ -839,8 +822,6 @@ def tf_efficientnet_cc_b0_8e(pretrained=False, **kwargs):
 
 def tf_efficientnet_cc_b1_8e(pretrained=False, **kwargs):
     """ EfficientNet-CondConv-B1 w/ 8 Experts """
-    # NOTE for train, drop_rate should be 0.2
-    #kwargs['drop_connect_rate'] = 0.2  # set when training, TODO add as cmd arg
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet_condconv(
@@ -852,6 +833,7 @@ def tf_efficientnet_cc_b1_8e(pretrained=False, **kwargs):
 def mixnet_s(pretrained=False, **kwargs):
     """Creates a MixNet Small model.
     """
+    # NOTE for train set drop_rate=0.2
     model = _gen_mixnet_s(
         'mixnet_s', channel_multiplier=1.0, pretrained=pretrained, **kwargs)
     return model
@@ -860,6 +842,7 @@ def mixnet_s(pretrained=False, **kwargs):
 def mixnet_m(pretrained=False, **kwargs):
     """Creates a MixNet Medium model.
     """
+    # NOTE for train set drop_rate=0.25
     model = _gen_mixnet_m(
         'mixnet_m', channel_multiplier=1.0, pretrained=pretrained, **kwargs)
     return model
@@ -868,6 +851,7 @@ def mixnet_m(pretrained=False, **kwargs):
 def mixnet_l(pretrained=False, **kwargs):
     """Creates a MixNet Large model.
     """
+    # NOTE for train set drop_rate=0.25
     model = _gen_mixnet_m(
         'mixnet_l', channel_multiplier=1.3, pretrained=pretrained, **kwargs)
     return model
@@ -877,6 +861,7 @@ def mixnet_xl(pretrained=False, **kwargs):
     """Creates a MixNet Extra-Large model.
     Not a paper spec, experimental def by RW w/ depth scaling.
     """
+    # NOTE for train set drop_rate=0.25, drop_connect_rate=0.2
     model = _gen_mixnet_m(
         'mixnet_xl', channel_multiplier=1.6, depth_multiplier=1.2, pretrained=pretrained, **kwargs)
     return model
@@ -886,7 +871,7 @@ def mixnet_xxl(pretrained=False, **kwargs):
     """Creates a MixNet Double Extra Large model.
     Not a paper spec, experimental def by RW w/ depth scaling.
     """
-    # kwargs['drop_connect_rate'] = 0.2
+    # NOTE for train set drop_rate=0.3, drop_connect_rate=0.2
     model = _gen_mixnet_m(
         'mixnet_xxl', channel_multiplier=2.4, depth_multiplier=1.3, pretrained=pretrained, **kwargs)
     return model

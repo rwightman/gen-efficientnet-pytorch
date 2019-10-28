@@ -124,6 +124,35 @@ Models can be accessed via the PyTorch Hub API
 >>> output = model(torch.randn(1,3,224,224))
 ```
 
+### Pip
+This package can be installed via pip.
+
+Install (after conda env/install):
+```
+pip install geffnet
+```
+
+Eval use:
+```
+>>> import geffnet
+>>> m = geffnet.create_model('mobilenetv3_100', pretrained=True)
+>>> m.eval()
+```
+
+Train use:
+```
+>>> import geffnet
+>>> # models can also be created by using the entrypoint directly
+>>> m = geffnet.efficientnet_b2(pretrained=True, drop_rate=0.25, drop_connect_rate=0.2)
+>>> m.train()
+```
+
+Create in a nn.Sequential container, for fast.ai, etc:
+```
+>>> import geffnet
+>>> m = geffnet.mixnet_l(pretrained=True, drop_rate=0.25, drop_connect_rate=0.2, as_sequential=True)
+```
+
 ## Exporting
 
 Scripts to export models to ONNX and then to Caffe2 are included, along with a Caffe2 script to verify.
