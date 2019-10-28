@@ -21,23 +21,22 @@ class MobileNetV3(nn.Module):
     """ MobileNetV3
     """
 
-    def __init__(self, block_args, num_classes=1000, in_chans=3, stem_size=32, num_features=1280,
-                 channel_multiplier=1.0, channel_divisor=8, channel_min=None,
-                 pad_type='', act_layer=nn.ReLU, drop_rate=0., drop_connect_rate=0.,
-                 se_gate_fn=sigmoid, se_reduce_mid=False, norm_kwargs=BN_ARGS_PT, weight_init='goog'):
+    def __init__(self, block_args, num_classes=1000, in_chans=3, stem_size=16, num_features=1280,
+                 channel_multiplier=1.0, pad_type='', act_layer=HardSwish, drop_rate=0., drop_connect_rate=0.,
+                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, weight_init='goog'):
         super(MobileNetV3, self).__init__()
         self.drop_rate = drop_rate
 
-        stem_size = round_channels(stem_size, channel_multiplier, channel_divisor, channel_min)
+        stem_size = round_channels(stem_size, channel_multiplier)
         self.conv_stem = select_conv2d(in_chans, stem_size, 3, stride=2, padding=pad_type)
         self.bn1 = nn.BatchNorm2d(stem_size, **norm_kwargs)
         self.act1 = act_layer(inplace=True)
         in_chs = stem_size
 
         builder = EfficientNetBuilder(
-            channel_multiplier, channel_divisor, channel_min,
-            pad_type, act_layer, se_gate_fn, se_reduce_mid,
-            norm_kwargs, drop_connect_rate)
+            channel_multiplier, pad_type=pad_type, act_layer=act_layer, se_gate_fn=hard_sigmoid,
+            se_reduce_mid=True, norm_layer=norm_layer, norm_kwargs=norm_kwargs,
+            drop_connect_rate=drop_connect_rate)
         self.blocks = nn.Sequential(*builder(in_chs, block_args))
         in_chs = builder.in_chs
 
@@ -115,12 +114,8 @@ def _gen_mobilenet_v3(variant, channel_multiplier=1.0, pretrained=False, **kwarg
     ]
     model_kwargs = dict(
         block_args=decode_arch_def(arch_def),
-        stem_size=16,
         channel_multiplier=channel_multiplier,
         norm_kwargs=resolve_bn_args(kwargs),
-        act_layer=HardSwish,
-        se_gate_fn=hard_sigmoid,
-        se_reduce_mid=True,
         **kwargs,
     )
     model = _create_model(model_kwargs, variant, pretrained)

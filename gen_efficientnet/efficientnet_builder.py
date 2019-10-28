@@ -65,12 +65,11 @@ def drop_connect(inputs, training=False, drop_connect_rate=0.):
 
 class ConvBnAct(nn.Module):
     def __init__(self, in_chs, out_chs, kernel_size,
-                 stride=1, pad_type='', act_layer=F.relu, bn_args=BN_ARGS_PT):
+                 stride=1, pad_type='', act_layer=F.relu, norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT):
         super(ConvBnAct, self).__init__()
         assert stride in [1, 2]
-        self.act_layer = act_layer
         self.conv = select_conv2d(in_chs, out_chs, kernel_size, stride=stride, padding=pad_type)
-        self.bn1 = nn.BatchNorm2d(out_chs, **bn_args)
+        self.bn1 = norm_layer(out_chs, **norm_kwargs)
         self.act1 = act_layer(inplace=True)
 
     def forward(self, x):
@@ -89,7 +88,7 @@ class DepthwiseSeparableConv(nn.Module):
                  stride=1, pad_type='', act_layer=nn.ReLU, noskip=False,
                  pw_kernel_size=1, pw_act=False,
                  se_ratio=0., se_gate_fn=sigmoid,
-                 bn_args=BN_ARGS_PT, drop_connect_rate=0.):
+                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, drop_connect_rate=0.):
         super(DepthwiseSeparableConv, self).__init__()
         assert stride in [1, 2]
         self.has_se = se_ratio is not None and se_ratio > 0.
@@ -98,7 +97,7 @@ class DepthwiseSeparableConv(nn.Module):
 
         self.conv_dw = select_conv2d(
             in_chs, in_chs, dw_kernel_size, stride=stride, padding=pad_type, depthwise=True)
-        self.bn1 = nn.BatchNorm2d(in_chs, **bn_args)
+        self.bn1 = norm_layer(in_chs, **norm_kwargs)
         self.act1 = act_layer(inplace=True)
 
         # Squeeze-and-excitation
@@ -107,7 +106,7 @@ class DepthwiseSeparableConv(nn.Module):
                 in_chs, reduce_chs=max(1, int(in_chs * se_ratio)), act_layer=act_layer, gate_fn=se_gate_fn)
 
         self.conv_pw = select_conv2d(in_chs, out_chs, pw_kernel_size, padding=pad_type)
-        self.bn2 = nn.BatchNorm2d(out_chs, **bn_args)
+        self.bn2 = norm_layer(out_chs, **norm_kwargs)
         self.act2 = act_layer(inplace=True) if pw_act else nn.Identity()
 
     def forward(self, x):
@@ -161,7 +160,7 @@ class InvertedResidual(nn.Module):
                  stride=1, pad_type='', act_layer=nn.ReLU, noskip=False,
                  exp_ratio=1.0, exp_kernel_size=1, pw_kernel_size=1,
                  se_ratio=0., se_reduce_mid=False, se_gate_fn=sigmoid,
-                 bn_args=BN_ARGS_PT, num_experts=0, drop_connect_rate=0.):
+                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, num_experts=0, drop_connect_rate=0.):
         super(InvertedResidual, self).__init__()
         mid_chs = int(in_chs * exp_ratio)
         self.has_se = se_ratio is not None and se_ratio > 0.
@@ -177,13 +176,13 @@ class InvertedResidual(nn.Module):
 
         # Point-wise expansion
         self.conv_pw = select_conv2d(in_chs, mid_chs, exp_kernel_size, padding=pad_type, **extra_args)
-        self.bn1 = nn.BatchNorm2d(mid_chs, **bn_args)
+        self.bn1 = norm_layer(mid_chs, **norm_kwargs)
         self.act1 = act_layer(inplace=True)
 
         # Depth-wise convolution
         self.conv_dw = select_conv2d(
             mid_chs, mid_chs, dw_kernel_size, stride=stride, padding=pad_type, depthwise=True, **extra_args)
-        self.bn2 = nn.BatchNorm2d(mid_chs, **bn_args)
+        self.bn2 = norm_layer(mid_chs, **norm_kwargs)
         self.act2 = act_layer(inplace=True)
 
         # Squeeze-and-excitation
@@ -194,7 +193,7 @@ class InvertedResidual(nn.Module):
 
         # Point-wise linear projection
         self.conv_pwl = select_conv2d(mid_chs, out_chs, pw_kernel_size, padding=pad_type, **extra_args)
-        self.bn3 = nn.BatchNorm2d(out_chs, **bn_args)
+        self.bn3 = norm_layer(out_chs, **norm_kwargs)
 
     def forward(self, x):
         residual = x
@@ -238,7 +237,7 @@ class EdgeResidual(nn.Module):
     def __init__(self, in_chs, out_chs, exp_kernel_size=3, exp_ratio=1.0, fake_in_chs=0,
                  stride=1, pad_type='', act_layer=nn.ReLU, noskip=False, pw_kernel_size=1,
                  se_ratio=0., se_reduce_mid=False, se_gate_fn=sigmoid,
-                 bn_args=BN_ARGS_PT, drop_connect_rate=0.):
+                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, drop_connect_rate=0.):
         super(EdgeResidual, self).__init__()
         mid_chs = int(fake_in_chs * exp_ratio) if fake_in_chs > 0 else int(in_chs * exp_ratio)
         self.has_se = se_ratio is not None and se_ratio > 0.
@@ -247,7 +246,7 @@ class EdgeResidual(nn.Module):
 
         # Expansion convolution
         self.conv_exp = select_conv2d(in_chs, mid_chs, exp_kernel_size, padding=pad_type)
-        self.bn1 = nn.BatchNorm2d(mid_chs, **bn_args)
+        self.bn1 = norm_layer(mid_chs, **norm_kwargs)
         self.act1 = act_layer(inplace=True)
 
         # Squeeze-and-excitation
@@ -258,7 +257,7 @@ class EdgeResidual(nn.Module):
 
         # Point-wise linear projection
         self.conv_pwl = select_conv2d(mid_chs, out_chs, pw_kernel_size, stride=stride, padding=pad_type)
-        self.bn2 = nn.BatchNorm2d(out_chs, **bn_args)
+        self.bn2 = nn.BatchNorm2d(out_chs, **norm_kwargs)
 
     def forward(self, x):
         residual = x
@@ -296,7 +295,7 @@ class EfficientNetBuilder:
 
     def __init__(self, channel_multiplier=1.0, channel_divisor=8, channel_min=None,
                  pad_type='', act_layer=None, se_gate_fn=sigmoid, se_reduce_mid=False,
-                 bn_args=BN_ARGS_PT, drop_connect_rate=0.):
+                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, drop_connect_rate=0.):
         self.channel_multiplier = channel_multiplier
         self.channel_divisor = channel_divisor
         self.channel_min = channel_min
@@ -304,7 +303,8 @@ class EfficientNetBuilder:
         self.act_layer = act_layer
         self.se_gate_fn = se_gate_fn
         self.se_reduce_mid = se_reduce_mid
-        self.bn_args = bn_args
+        self.norm_layer = norm_layer
+        self.norm_kwargs = norm_kwargs
         self.drop_connect_rate = drop_connect_rate
 
         # updated during build
@@ -322,7 +322,8 @@ class EfficientNetBuilder:
         if 'fake_in_chs' in ba and ba['fake_in_chs']:
             # FIXME this is a hack to work around mismatch in origin impl input filters for EdgeTPU
             ba['fake_in_chs'] = self._round_channels(ba['fake_in_chs'])
-        ba['bn_args'] = self.bn_args
+        ba['norm_layer'] = self.norm_layer
+        ba['norm_kwargs'] = self.norm_kwargs
         ba['pad_type'] = self.pad_type
         # block act fn overrides the model default
         ba['act_layer'] = ba['act_layer'] if ba['act_layer'] is not None else self.act_layer
