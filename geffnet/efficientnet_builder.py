@@ -561,28 +561,40 @@ def decode_arch_def(arch_def, depth_multiplier=1.0, depth_trunc='ceil', experts_
     return arch_args
 
 
-def initialize_weight_goog(m):
+def initialize_weight_goog(m, n=''):
     # weight init as per Tensorflow Official impl
     # https://github.com/tensorflow/tpu/blob/master/models/official/mnasnet/mnasnet_model.py
-    # FIXME add CondConv
-    if isinstance(m, nn.Conv2d):
-        n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels  # fan-out
-        m.weight.data.normal_(0, math.sqrt(2.0 / n))
+    if isinstance(m, CondConv2d):
+        fan_out = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+        init_weight_fn = get_condconv_initializer(
+            lambda w: w.data.normal_(0, math.sqrt(2.0 / fan_out)), m.num_experts, m.weight_shape)
+        init_weight_fn(m.weight)
+        if m.bias is not None:
+            m.bias.data.zero_()
+    elif isinstance(m, nn.Conv2d):
+        fan_out = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+        m.weight.data.normal_(0, math.sqrt(2.0 / fan_out))
         if m.bias is not None:
             m.bias.data.zero_()
     elif isinstance(m, nn.BatchNorm2d):
         m.weight.data.fill_(1.0)
         m.bias.data.zero_()
     elif isinstance(m, nn.Linear):
-        n = m.weight.size(0)  # fan-out
-        init_range = 1.0 / math.sqrt(n)
+        fan_out = m.weight.size(0)  # fan-out
+        fan_in = 0
+        if 'routing_fn' in n:
+            fan_in = m.weight.size(1)
+        init_range = 1.0 / math.sqrt(fan_in + fan_out)
         m.weight.data.uniform_(-init_range, init_range)
         m.bias.data.zero_()
 
 
-def initialize_weight_default(m):
-    # FIXME add CondConv
-    if isinstance(m, nn.Conv2d):
+def initialize_weight_default(m, n=''):
+    if isinstance(m, CondConv2d):
+        init_fn = get_condconv_initializer(partial(
+            nn.init.kaiming_normal_, mode='fan_out', nonlinearity='relu'), m.num_experts, m.weight_shape)
+        init_fn(m.weight)
+    elif isinstance(m, nn.Conv2d):
         nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
     elif isinstance(m, nn.BatchNorm2d):
         m.weight.data.fill_(1.0)

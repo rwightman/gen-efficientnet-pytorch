@@ -187,7 +187,11 @@ def get_condconv_initializer(initializer, num_experts, expert_shape):
 class CondConv2d(nn.Module):
     """ Conditional Convolution
     Inspired by: https://github.com/tensorflow/tpu/blob/master/models/official/efficientnet/condconv/condconv_layers.py
+
+    Grouped convolution hackery for parallel execution of the per-sample kernel filters inspired by this discussion:
+    https://github.com/pytorch/pytorch/issues/17983
     """
+    __constants__ = ['bias', 'in_channels', 'out_channels']
 
     def __init__(self, in_channels, out_channels, kernel_size=3,
                  stride=1, padding='', dilation=1, groups=1, bias=False, num_experts=4):
@@ -214,24 +218,19 @@ class CondConv2d(nn.Module):
             weight_num_param *= wd
         self.weight = torch.nn.Parameter(torch.Tensor(self.num_experts, weight_num_param))
 
-        # FIXME I haven't tested bias yet
         if bias:
             self.bias_shape = (self.out_channels,)
-            condconv_bias_shape = (self.num_experts, self.out_channels)
-            self.bias = torch.nn.Parameter(torch.Tensor(condconv_bias_shape))
+            self.bias = torch.nn.Parameter(torch.Tensor(self.num_experts, self.out_channels))
         else:
             self.register_parameter('bias', None)
 
         self.reset_parameters()
-        # FIXME once I'm satisfied this works, remove the looping path?
-        self._use_groups = True  # use groups for parallel per-batch-element kernel convolution
 
     def reset_parameters(self):
         init_weight = get_condconv_initializer(
             partial(nn.init.kaiming_uniform_, a=math.sqrt(5)), self.num_experts, self.weight_shape)
         init_weight(self.weight)
         if self.bias is not None:
-            # FIXME bias not tested
             fan_in = np.prod(self.weight_shape[1:])
             bound = 1 / math.sqrt(fan_in)
             init_bias = get_condconv_initializer(
@@ -239,34 +238,38 @@ class CondConv2d(nn.Module):
             init_bias(self.bias)
 
     def forward(self, x, routing_weights):
-        weight = torch.matmul(routing_weights, self.weight)
-        bias = torch.matmul(routing_weights, self.bias) if self.bias is not None else None
         B, C, H, W = x.shape
-        if self._use_groups:
-            new_weight_shape = (B * self.out_channels, self.in_channels // self.groups) + self.kernel_size
-            weight = weight.view(new_weight_shape)
-            x = x.view(1, B * C, H, W)
-            out = self.conv_fn(
-                x, weight, bias, stride=self.stride, padding=self.padding,
-                dilation=self.dilation, groups=self.groups * B)
-            out = out.permute([1, 0, 2, 3]).view(B, self.out_channels, out.shape[-2], out.shape[-1])
-        else:
-            x = torch.split(x, 1, 0)
-            weight = torch.split(weight, 1, 0)
-            if self.bias is not None:
-                bias = torch.matmul(routing_weights, self.bias)
-                bias = torch.split(bias, 1, 0)
-            else:
-                bias = [None] * B
-            out = []
-            for xi, wi, bi in zip(x, weight, bias):
-                wi = wi.view(*self.weight_shape)
-                if bi is not None:
-                    bi = bi.view(*self.bias_shape)
-                out.append(self.conv_fn(
-                    xi, wi, bi, stride=self.stride, padding=self.padding,
-                    dilation=self.dilation, groups=self.groups))
-            out = torch.cat(out, 0)
+        weight = torch.matmul(routing_weights, self.weight)
+        new_weight_shape = (B * self.out_channels, self.in_channels // self.groups) + self.kernel_size
+        weight = weight.view(new_weight_shape)
+        bias = None
+        if self.bias is not None:
+            bias = torch.matmul(routing_weights, self.bias)
+            bias = bias.view(B * self.out_channels)
+        # move batch elements with channels so each batch element can be efficiently convolved with separate kernel
+        x = x.view(1, B * C, H, W)
+        out = self.conv_fn(
+            x, weight, bias, stride=self.stride, padding=self.padding,
+            dilation=self.dilation, groups=self.groups * B)
+        out = out.permute([1, 0, 2, 3]).view(B, self.out_channels, out.shape[-2], out.shape[-1])
+
+        # Literal port (from TF definition)
+        # x = torch.split(x, 1, 0)
+        # weight = torch.split(weight, 1, 0)
+        # if self.bias is not None:
+        #     bias = torch.matmul(routing_weights, self.bias)
+        #     bias = torch.split(bias, 1, 0)
+        # else:
+        #     bias = [None] * B
+        # out = []
+        # for xi, wi, bi in zip(x, weight, bias):
+        #     wi = wi.view(*self.weight_shape)
+        #     if bi is not None:
+        #         bi = bi.view(*self.bias_shape)
+        #     out.append(self.conv_fn(
+        #         xi, wi, bi, stride=self.stride, padding=self.padding,
+        #         dilation=self.dilation, groups=self.groups))
+        # out = torch.cat(out, 0)
         return out
 
 
@@ -276,12 +279,12 @@ def select_conv2d(in_chs, out_chs, kernel_size, **kwargs):
         assert 'num_experts' not in kwargs  # MixNet + CondConv combo not supported currently
         # We're going to use only lists for defining the MixedConv2d kernel groups,
         # ints, tuples, other iterables will continue to pass to normal conv and specify h, w.
-        return MixedConv2d(in_chs, out_chs, kernel_size, **kwargs)
+        m = MixedConv2d(in_chs, out_chs, kernel_size, **kwargs)
     else:
         depthwise = kwargs.pop('depthwise', False)
         groups = out_chs if depthwise else 1
         if 'num_experts' in kwargs and kwargs['num_experts'] > 0:
-            create_fn = CondConv2d
+            m = CondConv2d(in_chs, out_chs, kernel_size, groups=groups, **kwargs)
         else:
-            create_fn = create_conv2d_pad
-        return create_fn(in_chs, out_chs, kernel_size, groups=groups, **kwargs)
+            m = create_conv2d_pad(in_chs, out_chs, kernel_size, groups=groups, **kwargs)
+    return m

@@ -143,11 +143,11 @@ class GenEfficientNet(nn.Module):
         self.global_pool = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Linear(num_features, num_classes)
 
-        for m in self.modules():
+        for n, m in self.named_modules():
             if weight_init == 'goog':
-                initialize_weight_goog(m)
+                initialize_weight_goog(m, n)
             else:
-                initialize_weight_default(m)
+                initialize_weight_default(m, n)
 
     def features(self, x):
         x = self.conv_stem(x)
