@@ -12,13 +12,10 @@ A generic MobileNet class with building blocks to support a variety of models:
 
 Hacked together by Ross Wightman
 """
-
-import math
-
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .helpers import load_state_dict_from_url
+from .helpers import load_pretrained
 from .layers import Flatten
 from .efficientnet_builder import *
 
@@ -26,6 +23,7 @@ __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnas
            'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'mnasnet_a1', 'semnasnet_140', 'mnasnet_small',
            'fbnetc_100', 'spnasnet_100', 'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2',  'efficientnet_b3',
            'efficientnet_b4', 'efficientnet_b5', 'efficientnet_es', 'efficientnet_em', 'efficientnet_el',
+           'efficientnet_cc_b0_4e', 'efficientnet_cc_b0_8e', 'efficientnet_cc_b1_8e',
            'tf_efficientnet_b0', 'tf_efficientnet_b1', 'tf_efficientnet_b2', 'tf_efficientnet_b3',
            'tf_efficientnet_b4', 'tf_efficientnet_b5', 'tf_efficientnet_b6', 'tf_efficientnet_b7',
            'tf_efficientnet_es', 'tf_efficientnet_em', 'tf_efficientnet_el',
@@ -106,7 +104,7 @@ model_urls = {
 
 
 class GenEfficientNet(nn.Module):
-    """ Generic Efficient Networks
+    """ Generic EfficientNets
 
     An implementation of mobile optimized networks that covers:
       * EfficientNet (B0-B7, CondConv, EdgeTPU)
@@ -180,7 +178,7 @@ def _create_model(model_kwargs, variant, pretrained=False):
     as_sequential = model_kwargs.pop('as_sequential', False)
     model = GenEfficientNet(**model_kwargs)
     if pretrained and model_urls[variant]:
-        model.load_state_dict(load_state_dict_from_url(model_urls[variant]))
+        load_pretrained(model, model_urls[variant])
     if as_sequential:
         model = model.as_sequential()
     return model
@@ -215,6 +213,7 @@ def _gen_mnasnet_a1(variant, channel_multiplier=1.0, pretrained=False, **kwargs)
         block_args=decode_arch_def(arch_def),
         stem_size=32,
         channel_multiplier=channel_multiplier,
+        act_layer=get_act_layer('relu'),
         norm_kwargs=resolve_bn_args(kwargs),
         **kwargs
     )
@@ -251,6 +250,7 @@ def _gen_mnasnet_b1(variant, channel_multiplier=1.0, pretrained=False, **kwargs)
         block_args=decode_arch_def(arch_def),
         stem_size=32,
         channel_multiplier=channel_multiplier,
+        act_layer=get_act_layer('relu'),
         norm_kwargs=resolve_bn_args(kwargs),
         **kwargs
     )
@@ -280,6 +280,7 @@ def _gen_mnasnet_small(variant, channel_multiplier=1.0, pretrained=False, **kwar
         block_args=decode_arch_def(arch_def),
         stem_size=8,
         channel_multiplier=channel_multiplier,
+        act_layer=get_act_layer('relu'),
         norm_kwargs=resolve_bn_args(kwargs),
         **kwargs
     )
@@ -310,6 +311,7 @@ def _gen_fbnetc(variant, channel_multiplier=1.0, pretrained=False, **kwargs):
         stem_size=16,
         num_features=1984,  # paper suggests this, but is not 100% clear
         channel_multiplier=channel_multiplier,
+        act_layer=get_act_layer('relu'),
         norm_kwargs=resolve_bn_args(kwargs),
         **kwargs
     )
@@ -345,6 +347,7 @@ def _gen_spnasnet(variant, channel_multiplier=1.0, pretrained=False, **kwargs):
         block_args=decode_arch_def(arch_def),
         stem_size=32,
         channel_multiplier=channel_multiplier,
+        act_layer=get_act_layer('relu'),
         norm_kwargs=resolve_bn_args(kwargs),
         **kwargs
     )
@@ -388,8 +391,8 @@ def _gen_efficientnet(variant, channel_multiplier=1.0, depth_multiplier=1.0, pre
         num_features=round_channels(1280, channel_multiplier, 8, None),
         stem_size=32,
         channel_multiplier=channel_multiplier,
+        act_layer=get_act_layer('swish'),
         norm_kwargs=resolve_bn_args(kwargs),
-        act_layer=Swish,
         **kwargs,
     )
     model = _create_model(model_kwargs, variant, pretrained)
@@ -412,8 +415,8 @@ def _gen_efficientnet_edge(variant, channel_multiplier=1.0, depth_multiplier=1.0
         num_features=round_channels(1280, channel_multiplier, 8, None),
         stem_size=32,
         channel_multiplier=channel_multiplier,
+        act_layer=get_act_layer('relu'),
         norm_kwargs=resolve_bn_args(kwargs),
-        act_layer=nn.ReLU,
         **kwargs,
     )
     model = _create_model(model_kwargs, variant, pretrained)
@@ -437,8 +440,8 @@ def _gen_efficientnet_condconv(
         num_features=round_channels(1280, channel_multiplier, 8, None),
         stem_size=32,
         channel_multiplier=channel_multiplier,
+        act_layer=get_act_layer('swish'),
         norm_kwargs=resolve_bn_args(kwargs),
-        act_layer=Swish,
         **kwargs,
     )
     model = _create_model(model_kwargs, variant, pretrained)
@@ -471,6 +474,7 @@ def _gen_mixnet_s(variant, channel_multiplier=1.0, pretrained=False, **kwargs):
         num_features=1536,
         stem_size=16,
         channel_multiplier=channel_multiplier,
+        act_layer=get_act_layer('relu'),
         norm_kwargs=resolve_bn_args(kwargs),
         **kwargs
     )
@@ -504,6 +508,7 @@ def _gen_mixnet_m(variant, channel_multiplier=1.0, depth_multiplier=1.0, pretrai
         num_features=1536,
         stem_size=24,
         channel_multiplier=channel_multiplier,
+        act_layer=get_act_layer('relu'),
         norm_kwargs=resolve_bn_args(kwargs),
         **kwargs
     )

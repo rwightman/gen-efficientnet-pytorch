@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.parallel
 
-from geffnet import create_model
+import geffnet
 from data import Dataset, create_loader, resolve_data_config
 from utils import accuracy, AverageMeter
 
@@ -42,6 +42,8 @@ parser.add_argument('--checkpoint', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
 parser.add_argument('--pretrained', dest='pretrained', action='store_true',
                     help='use pre-trained model')
+parser.add_argument('--torchscript', dest='torchscript', action='store_true',
+                    help='convert model torchscript for inference')
 parser.add_argument('--num-gpu', type=int, default=1,
                     help='Number of GPUS to use')
 parser.add_argument('--tf-preprocessing', dest='tf_preprocessing', action='store_true',
@@ -56,13 +58,20 @@ def main():
     if not args.checkpoint and not args.pretrained:
         args.pretrained = True
 
+    if args.torchscript:
+        geffnet.config.set_scriptable(True)
+
     # create model
-    model = create_model(
+    model = geffnet.create_model(
         args.model,
         num_classes=args.num_classes,
         in_chans=3,
         pretrained=args.pretrained,
         checkpoint_path=args.checkpoint)
+
+    if args.torchscript:
+        torch.jit.optimized_execution(True)
+        model = torch.jit.script(model)
 
     print('Model %s created, param count: %d' %
           (args.model, sum([m.numel() for m in model.parameters()])))

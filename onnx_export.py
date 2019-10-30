@@ -8,7 +8,7 @@ import numpy as np
 import onnx
 import caffe2.python.onnx.backend as onnx_caffe2
 
-from geffnet import create_model
+import geffnet
 
 torch.backends.cudnn.benchmark = True
 
@@ -38,8 +38,9 @@ def main():
         args.pretrained = False
 
     # create model
+    geffnet.config.set_exportable(True)
     print("==> Creating PyTorch {} model".format(args.model))
-    model = create_model(
+    model = geffnet.create_model(
         args.model,
         num_classes=args.num_classes,
         in_chans=3,

@@ -5,10 +5,11 @@ from torch._six import container_abcs
 
 from itertools import repeat
 from functools import partial
+from typing import Union, List, Tuple, Optional, Callable
 import numpy as np
 import math
 
-from .exportable import is_exportable
+from .config import *
 
 
 def _ntuple(n):
@@ -34,7 +35,7 @@ def _get_padding(kernel_size, stride=1, dilation=1, **_):
     return padding
 
 
-def _calc_same_pad(i, k, s, d):
+def _calc_same_pad(i: int, k: int, s: int, d: int):
     return max((math.ceil(i / s) - 1) * s + (k - 1) * d + 1 - i, 0)
 
 
@@ -52,8 +53,9 @@ def _split_channels(num_chan, num_groups):
     return split
 
 
-# pylint: disable=unused-argument
-def conv2d_same(x, weight, bias=None, stride=(1, 1), padding=(0, 0), dilation=(1, 1), groups=1):
+def conv2d_same(
+        x, weight: torch.Tensor, bias: Optional[torch.Tensor] = None, stride: Tuple[int, int] = (1, 1),
+        padding: Tuple[int, int] = (0, 0), dilation: Tuple[int, int] = (1, 1), groups: int = 1):
     ih, iw = x.size()[-2:]
     kh, kw = weight.size()[-2:]
     pad_h = _calc_same_pad(ih, kh, stride[0], dilation[0])
@@ -79,6 +81,8 @@ class Conv2dSame(nn.Conv2d):
 
 class Conv2dSameExport(nn.Conv2d):
     """ ONNX export friendly Tensorflow like 'SAME' convolution wrapper for 2D convolutions
+
+    NOTE: This does not currently work with torch.jit.script
     """
 
     # pylint: disable=unused-argument
@@ -132,6 +136,7 @@ def create_conv2d_pad(in_chs, out_chs, kernel_size, **kwargs):
     padding, is_dynamic = get_padding_value(padding, kernel_size, **kwargs)
     if is_dynamic:
         if is_exportable():
+            assert not is_scriptable()
             return Conv2dSameExport(in_chs, out_chs, kernel_size, **kwargs)
         else:
             return Conv2dSame(in_chs, out_chs, kernel_size, **kwargs)
@@ -143,6 +148,8 @@ class MixedConv2d(nn.Module):
     """ Mixed Grouped Convolution
     Based on MDConv and GroupedConv in MixNet impl:
       https://github.com/tensorflow/tpu/blob/master/models/official/mnasnet/mixnet/custom_layers.py
+
+    NOTE: This does not currently work with torch.jit.script
     """
 
     def __init__(self, in_channels, out_channels, kernel_size=3,
@@ -191,7 +198,7 @@ class CondConv2d(nn.Module):
     Grouped convolution hackery for parallel execution of the per-sample kernel filters inspired by this discussion:
     https://github.com/pytorch/pytorch/issues/17983
     """
-    __constants__ = ['bias', 'in_channels', 'out_channels']
+    __constants__ = ['bias', 'in_channels', 'out_channels', 'dynamic_padding']
 
     def __init__(self, in_channels, out_channels, kernel_size=3,
                  stride=1, padding='', dilation=1, groups=1, bias=False, num_experts=4):
@@ -203,13 +210,10 @@ class CondConv2d(nn.Module):
         self.stride = _pair(stride)
         padding_val, is_padding_dynamic = get_padding_value(
             padding, kernel_size, stride=stride, dilation=dilation)
-        self.conv_fn = conv2d_same if is_padding_dynamic else F.conv2d
+        self.dynamic_padding = is_padding_dynamic  # if in forward to work with torchscript
         self.padding = _pair(padding_val)
         self.dilation = _pair(dilation)
-        self.transposed = False
-        self.output_padding = _pair(0)
         self.groups = groups
-        self.padding_mode = 'zero'
         self.num_experts = num_experts
 
         self.weight_shape = (self.out_channels, self.in_channels // self.groups) + self.kernel_size
@@ -248,9 +252,14 @@ class CondConv2d(nn.Module):
             bias = bias.view(B * self.out_channels)
         # move batch elements with channels so each batch element can be efficiently convolved with separate kernel
         x = x.view(1, B * C, H, W)
-        out = self.conv_fn(
-            x, weight, bias, stride=self.stride, padding=self.padding,
-            dilation=self.dilation, groups=self.groups * B)
+        if self.dynamic_padding:
+            out = conv2d_same(
+                x, weight, bias, stride=self.stride, padding=self.padding,
+                dilation=self.dilation, groups=self.groups * B)
+        else:
+            out = F.conv2d(
+                x, weight, bias, stride=self.stride, padding=self.padding,
+                dilation=self.dilation, groups=self.groups * B)
         out = out.permute([1, 0, 2, 3]).view(B, self.out_channels, out.shape[-2], out.shape[-1])
 
         # Literal port (from TF definition)

@@ -1,12 +1,8 @@
-import torch
-from torch import nn as nn
-
 import re
 from copy import deepcopy
-from functools import partial
 
 from .conv2d_layers import *
-from .activations import *
+from geffnet.activations import *
 
 # Default args for PyTorch BN impl
 BN_MOMENTUM_PT_DEFAULT = 0.1
@@ -50,7 +46,7 @@ def round_channels(channels, depth_multiplier=1.0, depth_divisor=8, min_depth=No
     return new_channels
 
 
-def drop_connect(inputs, training=False, drop_connect_rate=0.):
+def drop_connect(inputs, training: bool = False, drop_connect_rate: float = 0.):
     """Apply drop connect."""
     if not training:
         return inputs
@@ -65,7 +61,7 @@ def drop_connect(inputs, training=False, drop_connect_rate=0.):
 
 class ConvBnAct(nn.Module):
     def __init__(self, in_chs, out_chs, kernel_size,
-                 stride=1, pad_type='', act_layer=F.relu, norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT):
+                 stride=1, pad_type='', act_layer=nn.ReLU, norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT):
         super(ConvBnAct, self).__init__()
         assert stride in [1, 2]
         self.conv = select_conv2d(in_chs, out_chs, kernel_size, stride=stride, padding=pad_type)
@@ -104,6 +100,8 @@ class DepthwiseSeparableConv(nn.Module):
         if self.has_se:
             self.se = SqueezeExcite(
                 in_chs, reduce_chs=max(1, int(in_chs * se_ratio)), act_layer=act_layer, gate_fn=se_gate_fn)
+        else:
+            self.se = nn.Identity()
 
         self.conv_pw = select_conv2d(in_chs, out_chs, pw_kernel_size, padding=pad_type)
         self.bn2 = norm_layer(out_chs, **norm_kwargs)
@@ -116,8 +114,7 @@ class DepthwiseSeparableConv(nn.Module):
         x = self.bn1(x)
         x = self.act1(x)
 
-        if self.has_se:
-            x = self.se(x)
+        x = self.se(x)
 
         x = self.conv_pw(x)
         x = self.bn2(x)
@@ -131,6 +128,8 @@ class DepthwiseSeparableConv(nn.Module):
 
 
 class SqueezeExcite(nn.Module):
+    __constants__ = ['gate_fn']
+
     def __init__(self, in_chs, reduce_chs=None, act_layer=nn.ReLU, gate_fn=torch.sigmoid):
         super(SqueezeExcite, self).__init__()
         self.act_layer = act_layer
@@ -160,28 +159,21 @@ class InvertedResidual(nn.Module):
                  stride=1, pad_type='', act_layer=nn.ReLU, noskip=False,
                  exp_ratio=1.0, exp_kernel_size=1, pw_kernel_size=1,
                  se_ratio=0., se_reduce_mid=False, se_gate_fn=sigmoid,
-                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, num_experts=0, drop_connect_rate=0.):
+                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, conv_kwargs={}, drop_connect_rate=0.):
         super(InvertedResidual, self).__init__()
-        mid_chs = int(in_chs * exp_ratio)
+        mid_chs: int = int(in_chs * exp_ratio)
         self.has_se = se_ratio is not None and se_ratio > 0.
         self.has_residual = (in_chs == out_chs and stride == 1) and not noskip
         self.drop_connect_rate = drop_connect_rate
 
-        self.num_experts = num_experts
-        extra_args = dict()
-        if num_experts > 0:
-            extra_args = dict(num_experts=self.num_experts)
-            self.routing_fn = nn.Linear(in_chs, self.num_experts)
-            self.routing_act = torch.sigmoid
-
         # Point-wise expansion
-        self.conv_pw = select_conv2d(in_chs, mid_chs, exp_kernel_size, padding=pad_type, **extra_args)
+        self.conv_pw = select_conv2d(in_chs, mid_chs, exp_kernel_size, padding=pad_type, **conv_kwargs)
         self.bn1 = norm_layer(mid_chs, **norm_kwargs)
         self.act1 = act_layer(inplace=True)
 
         # Depth-wise convolution
         self.conv_dw = select_conv2d(
-            mid_chs, mid_chs, dw_kernel_size, stride=stride, padding=pad_type, depthwise=True, **extra_args)
+            mid_chs, mid_chs, dw_kernel_size, stride=stride, padding=pad_type, depthwise=True, **conv_kwargs)
         self.bn2 = norm_layer(mid_chs, **norm_kwargs)
         self.act2 = act_layer(inplace=True)
 
@@ -190,38 +182,83 @@ class InvertedResidual(nn.Module):
             se_base_chs = mid_chs if se_reduce_mid else in_chs
             self.se = SqueezeExcite(
                 mid_chs, reduce_chs=max(1, int(se_base_chs * se_ratio)), act_layer=act_layer, gate_fn=se_gate_fn)
+        else:
+            self.se = nn.Identity()  # for jit.script compat
 
         # Point-wise linear projection
-        self.conv_pwl = select_conv2d(mid_chs, out_chs, pw_kernel_size, padding=pad_type, **extra_args)
+        self.conv_pwl = select_conv2d(mid_chs, out_chs, pw_kernel_size, padding=pad_type, **conv_kwargs)
         self.bn3 = norm_layer(out_chs, **norm_kwargs)
 
     def forward(self, x):
         residual = x
 
-        conv_pw, conv_dw, conv_pwl = self.conv_pw, self.conv_dw, self.conv_pwl
-        if self.num_experts > 0:
-            pooled_inputs = F.adaptive_avg_pool2d(x, 1).flatten(1)
-            routing_weights = self.routing_act(self.routing_fn(pooled_inputs))
-            conv_pw = partial(self.conv_pw, routing_weights=routing_weights)
-            conv_dw = partial(self.conv_dw, routing_weights=routing_weights)
-            conv_pwl = partial(self.conv_pwl, routing_weights=routing_weights)
-
         # Point-wise expansion
-        x = conv_pw(x)
+        x = self.conv_pw(x)
         x = self.bn1(x)
         x = self.act1(x)
 
         # Depth-wise convolution
-        x = conv_dw(x)
+        x = self.conv_dw(x)
         x = self.bn2(x)
         x = self.act2(x)
 
         # Squeeze-and-excitation
-        if self.has_se:
-            x = self.se(x)
+        x = self.se(x)
 
         # Point-wise linear projection
-        x = conv_pwl(x)
+        x = self.conv_pwl(x)
+        x = self.bn3(x)
+
+        if self.has_residual:
+            if self.drop_connect_rate > 0.:
+                x = drop_connect(x, self.training, self.drop_connect_rate)
+            x += residual
+        return x
+
+
+class CondConvResidual(InvertedResidual):
+    """ Inverted residual block w/ CondConv routing"""
+
+    def __init__(self, in_chs, out_chs, dw_kernel_size=3,
+                 stride=1, pad_type='', act_layer=nn.ReLU, noskip=False,
+                 exp_ratio=1.0, exp_kernel_size=1, pw_kernel_size=1,
+                 se_ratio=0., se_reduce_mid=False, se_gate_fn=sigmoid,
+                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, num_experts=0, drop_connect_rate=0.):
+
+        self.num_experts = num_experts
+        conv_kwargs = dict(num_experts=self.num_experts)
+
+        super(CondConvResidual, self).__init__(
+            in_chs, out_chs, dw_kernel_size=dw_kernel_size, stride=stride, pad_type=pad_type,
+            act_layer=act_layer, noskip=noskip, exp_ratio=exp_ratio, exp_kernel_size=exp_kernel_size,
+            pw_kernel_size=pw_kernel_size, se_ratio=se_ratio, se_reduce_mid=se_reduce_mid, se_gate_fn=se_gate_fn,
+            norm_layer=norm_layer, norm_kwargs=norm_kwargs, conv_kwargs=conv_kwargs,
+            drop_connect_rate=drop_connect_rate)
+
+        self.routing_fn = nn.Linear(in_chs, self.num_experts)
+
+    def forward(self, x):
+        residual = x
+
+        # CondConv routing
+        pooled_inputs = F.adaptive_avg_pool2d(x, 1).flatten(1)
+        routing_weights = torch.sigmoid(self.routing_fn(pooled_inputs))
+
+        # Point-wise expansion
+        x = self.conv_pw(x, routing_weights)
+        x = self.bn1(x)
+        x = self.act1(x)
+
+        # Depth-wise convolution
+        x = self.conv_dw(x, routing_weights)
+        x = self.bn2(x)
+        x = self.act2(x)
+
+        # Squeeze-and-excitation
+        x = self.se(x)
+
+        # Point-wise linear projection
+        x = self.conv_pwl(x, routing_weights)
         x = self.bn3(x)
 
         if self.has_residual:
@@ -254,6 +291,8 @@ class EdgeResidual(nn.Module):
             se_base_chs = mid_chs if se_reduce_mid else in_chs
             self.se = SqueezeExcite(
                 mid_chs, reduce_chs=max(1, int(se_base_chs * se_ratio)), act_layer=act_layer, gate_fn=se_gate_fn)
+        else:
+            self.se = nn.Identity()
 
         # Point-wise linear projection
         self.conv_pwl = select_conv2d(mid_chs, out_chs, pw_kernel_size, stride=stride, padding=pad_type)
@@ -268,8 +307,7 @@ class EdgeResidual(nn.Module):
         x = self.act1(x)
 
         # Squeeze-and-excitation
-        if self.has_se:
-            x = self.se(x)
+        x = self.se(x)
 
         # Point-wise linear projection
         x = self.conv_pwl(x)
@@ -332,7 +370,10 @@ class EfficientNetBuilder:
             ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
             ba['se_gate_fn'] = self.se_gate_fn
             ba['se_reduce_mid'] = self.se_reduce_mid
-            block = InvertedResidual(**ba)
+            if ba.get('num_experts', 0) > 0:
+                block = CondConvResidual(**ba)
+            else:
+                block = InvertedResidual(**ba)
         elif bt == 'ds' or bt == 'dsa':
             ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
             block = DepthwiseSeparableConv(**ba)
@@ -428,13 +469,13 @@ def _decode_block_str(block_str):
             key = op[0]
             v = op[1:]
             if v == 're':
-                value = nn.ReLU
+                value = get_act_layer('relu')
             elif v == 'r6':
-                value = nn.ReLU6
+                value = get_act_layer('relu6')
             elif v == 'hs':
-                value = HardSwish
+                value = get_act_layer('hard_swish')
             elif v == 'sw':
-                value = Swish
+                value = get_act_layer('swish')
             else:
                 continue
             options[key] = value
@@ -465,8 +506,9 @@ def _decode_block_str(block_str):
             stride=int(options['s']),
             act_layer=act_layer,
             noskip=noskip,
-            num_experts=int(options['cc']) if 'cc' in options else 0
         )
+        if 'cc' in options:
+            block_args['num_experts'] = int(options['cc'])
     elif block_type == 'ds' or block_type == 'dsa':
         block_args = dict(
             block_type=block_type,

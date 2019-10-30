@@ -1,9 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-import math
-
-from .helpers import load_state_dict_from_url
+from .helpers import load_pretrained
 from .layers import Flatten
 from .efficientnet_builder import *
 
@@ -81,7 +79,7 @@ def _create_model(model_kwargs, variant, pretrained=False):
     as_sequential = model_kwargs.pop('as_sequential', False)
     model = MobileNetV3(**model_kwargs)
     if pretrained and model_urls[variant]:
-        model.load_state_dict(load_state_dict_from_url(model_urls[variant]))
+        load_pretrained(model, model_urls[variant])
     if as_sequential:
         model = model.as_sequential()
     return model
@@ -115,6 +113,7 @@ def _gen_mobilenet_v3(variant, channel_multiplier=1.0, pretrained=False, **kwarg
     model_kwargs = dict(
         block_args=decode_arch_def(arch_def),
         channel_multiplier=channel_multiplier,
+        act_layer=get_act_layer('hard_swish'),
         norm_kwargs=resolve_bn_args(kwargs),
         **kwargs,
     )
