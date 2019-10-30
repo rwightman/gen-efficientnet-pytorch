@@ -1,12 +1,11 @@
 """ Generic Efficient Networks
 
 A generic MobileNet class with building blocks to support a variety of models:
-* EfficientNet (B0-B5 + Tensorflow pretrained ports)
+* EfficientNet (B0-B7 + Tensorflow pretrained AutoAug/RandAug ports)
 * MixNet (Small, Medium, and Large)
 * MNasNet B1, A1 (SE), Small
 * MobileNet V3
 * FBNet-C (TODO A & B)
-* ChamNet (TODO still guessing at architecture definition)
 * Single-Path NAS Pixel1
 * And likely more...
 
