@@ -2,7 +2,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .helpers import load_pretrained
-from .layers import Flatten
 from .efficientnet_builder import *
 
 __all__ = ['mobilenetv3_050', 'mobilenetv3_075', 'mobilenetv3_100']
@@ -54,7 +53,7 @@ class MobileNetV3(nn.Module):
         layers.extend(self.blocks)
         layers.extend([
             self.global_pool, self.conv_head,self.act2,
-            Flatten(), nn.Dropout(self.drop_rate), self.classifier])
+            nn.Flatten(), nn.Dropout(self.drop_rate), self.classifier])
         return nn.Sequential(*layers)
 
     def features(self, x):

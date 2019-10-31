@@ -41,6 +41,6 @@ setup(
     # Note that this is a string of words separated by whitespace, not a list.
     keywords='pytorch pretrained models efficientnet mixnet mobilenetv3 mnasnet',
     packages=find_packages(exclude=['data']),
-    install_requires=['torch >= 1.1', 'torchvision'],
+    install_requires=['torch >= 1.2', 'torchvision'],
     python_requires='>=3.6',
 )

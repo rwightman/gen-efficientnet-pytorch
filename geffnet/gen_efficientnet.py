@@ -15,7 +15,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .helpers import load_pretrained
-from .layers import Flatten
 from .efficientnet_builder import *
 
 __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_b1', 'mnasnet_140',
@@ -161,7 +160,7 @@ class GenEfficientNet(nn.Module):
         layers.extend(self.blocks)
         layers.extend([
             self.conv_head, self.bn2, self.act2,
-            self.global_pool, Flatten(), nn.Dropout(self.drop_rate), self.classifier])
+            self.global_pool, nn.Flatten(), nn.Dropout(self.drop_rate), self.classifier])
         return nn.Sequential(*layers)
 
     def forward(self, x):
