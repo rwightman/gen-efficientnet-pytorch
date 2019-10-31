@@ -1,10 +1,11 @@
+from re import findall
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
 def versiontuple(v):
-    return tuple(map(int, (v.split("."))))[:3]
+    return tuple(findall('\d+(?=\D|$)', v)[:3])
 
 
 if versiontuple(torch.__version__) >= versiontuple('1.2.0'):
