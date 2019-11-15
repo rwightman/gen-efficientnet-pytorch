@@ -4,6 +4,7 @@ from torch.nn import functional as F
 
 
 __all__ = ['swish_jit', 'SwishJit', 'mish_jit', 'MishJit']
+           #'hard_swish_jit', 'HardSwishJit', 'hard_sigmoid_jit', 'HardSigmoidJit']
 
 
 @torch.jit.script
@@ -83,3 +84,29 @@ class MishJit(nn.Module):
 
     def forward(self, x):
         return MishJitAutoFn.apply(x)
+
+
+# @torch.jit.script
+# def hard_swish_jit(x, inplac: bool = False):
+#     return x.mul(F.relu6(x + 3.).mul_(1./6.))
+#
+#
+# class HardSwishJit(nn.Module):
+#     def __init__(self, inplace: bool = False):
+#         super(HardSwishJit, self).__init__()
+#
+#     def forward(self, x):
+#         return hard_swish_jit(x)
+#
+#
+# @torch.jit.script
+# def hard_sigmoid_jit(x, inplace: bool = False):
+#     return F.relu6(x + 3.).mul(1./6.)
+#
+#
+# class HardSigmoidJit(nn.Module):
+#     def __init__(self, inplace: bool = False):
+#         super(HardSigmoidJit, self).__init__()
+#
+#     def forward(self, x):
+#         return hard_sigmoid_jit(x)

@@ -23,6 +23,8 @@ _ACT_FN_AUTO = dict(
 _ACT_FN_JIT = dict(
     swish=swish_jit,
     mish=mish_jit,
+    #hard_swish=hard_swish_jit,
+    #hard_sigmoid_jit=hard_sigmoid_jit,
 )
 
 _ACT_LAYER_DEFAULT = dict(
@@ -44,6 +46,8 @@ _ACT_LAYER_AUTO = dict(
 _ACT_LAYER_JIT = dict(
     swish=SwishJit,
     mish=MishJit,
+    #hard_swish=HardSwishJit,
+    #hard_sigmoid=HardSigmoidJit
 )
 
 _OVERRIDE_FN = dict()
