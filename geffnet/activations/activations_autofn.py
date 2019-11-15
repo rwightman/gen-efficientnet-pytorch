@@ -19,7 +19,7 @@ class SwishAutoFn(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        x = ctx.saved_variables[0]
+        x = ctx.saved_tensors[0]
         x_sigmoid = torch.sigmoid(x)
         return grad_output.mul(x_sigmoid * (1 + x * (1 - x_sigmoid)))
 
@@ -51,7 +51,7 @@ class MishAutoFn(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        x = ctx.saved_variables[0]
+        x = ctx.saved_tensors[0]
         x_sigmoid = torch.sigmoid(x)
         x_tanh_sp = F.softplus(x).tanh()
         return grad_output.mul(x_tanh_sp + x * x_sigmoid * (1 - x_tanh_sp * x_tanh_sp))
