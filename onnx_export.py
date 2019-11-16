@@ -55,9 +55,16 @@ def main():
     print("==> Exporting model to ONNX format at '{}'".format(args.output))
     input_names = ["input0"]
     output_names = ["output0"]
-    torch_out = torch.onnx._export(
-        model, x, args.output, export_params=True, verbose=False,
-        input_names=input_names, output_names=output_names)
+    optional_args = dict(keep_initializers_as_inputs=True)  # pytorch 1.3 needs this for export to succeed
+    try:
+        torch_out = torch.onnx._export(
+            model, x, args.output, export_params=True, verbose=False,
+            input_names=input_names, output_names=output_names, **optional_args)
+    except TypeError:
+        # fallback to no keep_initializers arg for pytorch < 1.3
+        torch_out = torch.onnx._export(
+            model, x, args.output, export_params=True, verbose=False,
+            input_names=input_names, output_names=output_names)
 
     print("==> Loading and checking exported model from '{}'".format(args.output))
     onnx_model = onnx.load(args.output)

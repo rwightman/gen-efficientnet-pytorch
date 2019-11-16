@@ -226,6 +226,56 @@ Parameter Memory per operator type:
         19.9579 MB in Total
 ```
 
+## TF MobileNet-V3 Large 1.0
+
+### Optimized
+```
+Main run finished. Milliseconds per iter: 22.0495. Iters per second: 45.3525
+Time per operator type:
+         17.437 ms.    80.0087%. Conv
+        1.27662 ms.     5.8577%. Add
+        1.12759 ms.    5.17387%. Div
+       0.701155 ms.    3.21721%. Mul
+       0.562654 ms.    2.58171%. Relu
+       0.431144 ms.    1.97828%. Clip
+       0.156902 ms.   0.719936%. FC
+      0.0996858 ms.   0.457402%. AveragePool
+     0.00112455 ms. 0.00515993%. Flatten
+        21.7939 ms in Total
+FLOP per operator type:
+        0.43062 GFLOP.    98.1484%. Conv
+       0.002561 GFLOP.   0.583713%. FC
+     0.00210867 GFLOP.   0.480616%. Mul
+     0.00193868 GFLOP.   0.441871%. Add
+     0.00151532 GFLOP.   0.345377%. Div
+              0 GFLOP.          0%. Relu
+       0.438743 GFLOP in Total
+Feature Memory Read per operator type:
+        34.7967 MB.    43.9391%. Conv
+         14.496 MB.    18.3046%. Mul
+        9.44828 MB.    11.9307%. Add
+        9.26157 MB.    11.6949%. Relu
+         6.0614 MB.    7.65395%. Div
+        5.12912 MB.    6.47673%. FC
+         79.193 MB in Total
+Feature Memory Written per operator type:
+        17.6247 MB.    35.8656%. Conv
+        9.26157 MB.     18.847%. Relu
+        8.43469 MB.    17.1643%. Mul
+        7.75472 MB.    15.7806%. Add
+        6.06128 MB.    12.3345%. Div
+          0.004 MB. 0.00813985%. FC
+        49.1409 MB in Total
+Parameter Memory per operator type:
+        16.6851 MB.    76.5052%. Conv
+          5.124 MB.    23.4948%. FC
+              0 MB.          0%. Add
+              0 MB.          0%. Div
+              0 MB.          0%. Mul
+              0 MB.          0%. Relu
+        21.8091 MB in Total
+```
+
 ## MobileNet-V3 (RW)
 
 ### Unoptimized
