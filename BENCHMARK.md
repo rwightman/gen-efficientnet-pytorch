@@ -226,7 +226,7 @@ Parameter Memory per operator type:
         19.9579 MB in Total
 ```
 
-## MobileNet-V3
+## MobileNet-V3 (RW)
 
 ### Unoptimized
 ```

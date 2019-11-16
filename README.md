@@ -6,6 +6,10 @@ All models are implemented by GenEfficientNet or MobileNetV3 classes, with strin
 
 ## What's New
 
+### Nov 15, 2019
+ * Ported official TF MobileNet-V3 float32 large/small/minimalistic weights
+ * Modifications to MobileNet-V3 model and components to support some additional config needed for differences between TF MobileNet-V3 and mine
+
 ### Oct 30, 2019
  * Many of the models will now work with torch.jit.script, MixNet being the biggest exception
  * Improved interface for enabling torchscript or ONNX export compatible modes (via config)
@@ -31,7 +35,7 @@ Implemented models include:
   * EfficientNet-CondConv (https://arxiv.org/abs/1904.04971)
   * MixNet (https://arxiv.org/abs/1907.09595) -- validated, compat with TF weights
   * MNASNet B1, A1 (Squeeze-Excite), and Small (https://arxiv.org/abs/1807.11626)
-  * MobileNet-V3 (https://arxiv.org/abs/1905.02244) -- native PyTorch model trained better than paper spec
+  * MobileNet-V3 (https://arxiv.org/abs/1905.02244) -- native PyTorch model trained better than paper spec, ported TF weights
   * FBNet-C (https://arxiv.org/abs/1812.03443) -- TODO A/B variants
   * Single-Path NAS (https://arxiv.org/abs/1904.02877) -- pixel1 variant
     
@@ -51,7 +55,7 @@ I've managed to train several of the models to accuracies close to or above the 
 | mixnet_m | 77.256 (22.744) | 93.418 (6.582) | 5.01 | 353 | bicubic | 224 | 0.875 |
 | efficientnet_b0 | 76.912 (23.088) | 93.210 (6.790) | 5.3 | 390 | bicubic | 224 | 0.875 |
 | mixnet_s | 75.988 (24.012) | 92.794 (7.206) | 4.13 | TBD | bicubic | 224 | 0.875 |
-| mobilenetv3_100 | 75.634 (24.366) | 92.708 (7.292) | 5.5 | 219 | bicubic | 224 | 0.875 |
+| mobilenetv3_rw | 75.634 (24.366) | 92.708 (7.292) | 5.5 | 219 | bicubic | 224 | 0.875 |
 | mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.9 | 312 | bicubic | 224 | 0.875 |
 | fbnetc_100 | 75.124 (24.876) | 92.386 (7.614) | 5.6 | 385 | bilinear | 224 | 0.875 |
 | mnasnet_b1 | 74.658 (25.342) | 92.114 (7.886) | 4.4 | 315 | bicubic | 224 | 0.875 |
@@ -73,7 +77,7 @@ Enabling the Tensorflow preprocessing pipeline with `--tf-preprocessing` at vali
 Ex, to run validation w/ TF preprocessing for tf_efficientnet_b5:
 `python validate.py /path/to/imagenet/validation/ --model tf_efficientnet_b5 -b 64 --img-size 456 --tf-preprocessing`
 
-EdgeTPU and EfficientNet-CondConv models use different normalization consts. Use Inception style 0.5, 0.5, 0.5 for mean and std.
+TF EdgeTPU, EfficientNet-CondConv, and MobileNet-V3 models use different normalization consts. Use Inception style 0.5, 0.5, 0.5 for mean and std.
 
 |Model | Prec@1 (Err) | Prec@5 (Err) | Param # | Image Scaling  | Image Size | Crop | 
 |---|---|---|---|---|---|---|
@@ -110,7 +114,19 @@ EdgeTPU and EfficientNet-CondConv models use different normalization consts. Use
 | tf_mixnet_m              | 76.950 (23.050) | 93.156 (6.844) | 5.01 | bicubic | 224 | 0.875 |
 | tf_efficientnet_b0       | 76.848 (23.152) | 93.228 (6.772) | 5.29  | bicubic | 224 | 0.875 |
 | tf_mixnet_s *tfp         | 75.800 (24.200) | 92.788 (7.212) | 4.13 | bilinear | 224 | N/A |
+| tf_mobilenetv3_large_100 *tfp | 75.768 (24.232) | 92.710 (7.290) | 5.48 | bilinear | 224 | N/A |
 | tf_mixnet_s              | 75.648 (24.352) | 92.636 (7.364) | 4.13 | bicubic | 224 | 0.875 |
+| tf_mobilenetv3_large_100 | 75.516 (24.484) | 92.600 (7.400) | 5.48 | bilinear | 224 | 0.875 |
+| tf_mobilenetv3_large_075 *tfp | 73.730 (26.270) | 91.616 (8.384) | 3.99 | bilinear | 224 |N/A |
+| tf_mobilenetv3_large_075 | 73.442 (26.558) | 91.352 (8.648) | 3.99 | bilinear | 224 | 0.875 |
+| tf_mobilenetv3_large_minimal_100 *tfp | 72.678 (27.322) | 90.860 (9.140) | 3.92 | bilinear | 224 | N/A |
+| tf_mobilenetv3_large_minimal_100 | 72.244 (27.756) | 90.636 (9.364) | 3.92 | bilinear | 224 | 0.875 |
+| tf_mobilenetv3_small_100 *tfp | 67.918 (32.082) | 87.958 (12.042 | 2.54 | bilinear | 224 | N/A |
+| tf_mobilenetv3_small_100 | 67.918 (32.082) | 87.662 (12.338) | 2.54 | bilinear | 224 | 0.875 |
+| tf_mobilenetv3_small_075 *tfp | 66.142 (33.858) | 86.498 (13.502) | 2.04 | bilinear | 224 | N/A |
+| tf_mobilenetv3_small_075 | 65.718 (34.282) | 86.136 (13.864) | 2.04 | bilinear | 224 | 0.875 |
+| tf_mobilenetv3_small_minimal_100 *tfp | 63.378 (36.622) | 84.802 (15.198) | 2.04 | bilinear | 224 | N/A |
+| tf_mobilenetv3_small_minimal_100 | 62.898 (37.102) | 84.230 (15.770) | 2.04 | bilinear | 224 | 0.875 |
 
 
 *tfp models validated with `tf-preprocessing` pipeline
@@ -118,6 +134,7 @@ EdgeTPU and EfficientNet-CondConv models use different normalization consts. Use
 Google tf and tflite weights ported from official Tensorflow repositories
 * https://github.com/tensorflow/tpu/tree/master/models/official/mnasnet
 * https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet
+* https://github.com/tensorflow/models/tree/master/research/slim/nets/mobilenet
 
 ## PyTorch Hub
 
