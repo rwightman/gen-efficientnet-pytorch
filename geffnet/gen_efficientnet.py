@@ -5,7 +5,7 @@ A generic MobileNet class with building blocks to support a variety of models:
 * MixNet (Small, Medium, and Large)
 * MNasNet B1, A1 (SE), Small
 * MobileNet V3
-* FBNet-C (TODO A & B)
+* FBNet-C
 * Single-Path NAS Pixel1
 * And likely more...
 

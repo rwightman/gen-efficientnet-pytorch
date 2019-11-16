@@ -1,3 +1,9 @@
+""" MobileNet-V3
+
+A PyTorch impl of MobileNet-V3, compatible with TF weights from official impl.
+
+Hacked together by Ross Wightman
+"""
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -35,8 +41,11 @@ model_urls = {
 
 class MobileNetV3(nn.Module):
     """ MobileNet-V3
+
     A this model utilizes the MobileNet-v3 specific 'efficient head', where global pooling is done before the
     head convolution without a final batch-norm layer before the classifier.
+
+    Paper: https://arxiv.org/abs/1905.02244
     """
 
     def __init__(self, block_args, num_classes=1000, in_chans=3, stem_size=16, num_features=1280, head_bias=True,
