@@ -4,23 +4,26 @@ from copy import deepcopy
 from .conv2d_layers import *
 from geffnet.activations import *
 
-# Default args for PyTorch BN impl
-BN_MOMENTUM_PT_DEFAULT = 0.1
-BN_EPS_PT_DEFAULT = 1e-5
-BN_ARGS_PT = dict(momentum=BN_MOMENTUM_PT_DEFAULT, eps=BN_EPS_PT_DEFAULT)
 
 # Defaults used for Google/Tensorflow training of mobile networks /w RMSprop as per
 # papers and TF reference implementations. PT momentum equiv for TF decay is (1 - TF decay)
 # NOTE: momentum varies btw .99 and .9997 depending on source
 # .99 in official TF TPU impl
 # .9997 (/w .999 in search space) for paper
+#
+# PyTorch defaults are momentum = .1, eps = 1e-5
+#
 BN_MOMENTUM_TF_DEFAULT = 1 - 0.99
 BN_EPS_TF_DEFAULT = 1e-3
-BN_ARGS_TF = dict(momentum=BN_MOMENTUM_TF_DEFAULT, eps=BN_EPS_TF_DEFAULT)
+_BN_ARGS_TF = dict(momentum=BN_MOMENTUM_TF_DEFAULT, eps=BN_EPS_TF_DEFAULT)
+
+
+def get_bn_args_tf():
+    return _BN_ARGS_TF.copy()
 
 
 def resolve_bn_args(kwargs):
-    bn_args = BN_ARGS_TF.copy() if kwargs.pop('bn_tf', False) else BN_ARGS_PT.copy()
+    bn_args = get_bn_args_tf() if kwargs.pop('bn_tf', False) else {}
     bn_momentum = kwargs.pop('bn_momentum', None)
     if bn_momentum is not None:
         bn_args['momentum'] = bn_momentum
@@ -30,20 +33,49 @@ def resolve_bn_args(kwargs):
     return bn_args
 
 
-def round_channels(channels, depth_multiplier=1.0, depth_divisor=8, min_depth=None):
-    """Round number of filters based on depth multiplier."""
-    if not depth_multiplier:
-        return channels
+_SE_ARGS_DEFAULT = dict(
+    gate_fn=sigmoid,
+    act_layer=None,  # None == use containing block's activation layer
+    reduce_mid=False,
+    divisor=1)
 
-    channels *= depth_multiplier
-    min_depth = min_depth or depth_divisor
-    new_channels = max(
-        int(channels + depth_divisor / 2) // depth_divisor * depth_divisor,
-        min_depth)
-    # Make sure that round down does not go down by more than 10%.
-    if new_channels < 0.9 * channels:
-        new_channels += depth_divisor
-    return new_channels
+
+def resolve_se_args(kwargs, in_chs, act_layer=None):
+    se_kwargs = kwargs.copy() if kwargs is not None else {}
+    # fill in args that aren't specified with the defaults
+    for k, v in _SE_ARGS_DEFAULT.items():
+        se_kwargs.setdefault(k, v)
+    # some models, like MobilNetV3, calculate SE reduction chs from the containing block's mid_ch instead of in_ch
+    if not se_kwargs.pop('reduce_mid'):
+        se_kwargs['reduced_base_chs'] = in_chs
+    # act_layer override, if it remains None, the containing block's act_layer will be used
+    if se_kwargs['act_layer'] is None:
+        assert act_layer is not None
+        se_kwargs['act_layer'] = act_layer
+    return se_kwargs
+
+
+def resolve_act_layer(kwargs, default='relu'):
+    act_layer = kwargs.pop('act_layer', default)
+    if isinstance(act_layer, str):
+        act_layer = get_act_layer(act_layer)
+    return act_layer
+
+
+def make_divisible(v: int, divisor: int = 8, min_value: int = None):
+    min_value = min_value or divisor
+    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
+    if new_v < 0.9 * v:  # ensure round down does not go down by more than 10%.
+        new_v += divisor
+    return new_v
+
+
+def round_channels(channels, multiplier=1.0, divisor=8, channel_min=None):
+    """Round number of filters based on depth multiplier."""
+    if not multiplier:
+        return channels
+    channels *= multiplier
+    return make_divisible(channels, divisor, channel_min)
 
 
 def drop_connect(inputs, training: bool = False, drop_connect_rate: float = 0.):
@@ -59,11 +91,34 @@ def drop_connect(inputs, training: bool = False, drop_connect_rate: float = 0.):
     return output
 
 
+class SqueezeExcite(nn.Module):
+    __constants__ = ['gate_fn']
+
+    def __init__(self, in_chs, se_ratio=0.25, reduced_base_chs=None, act_layer=nn.ReLU, gate_fn=sigmoid, divisor=1):
+        super(SqueezeExcite, self).__init__()
+        self.gate_fn = gate_fn
+        reduced_chs = make_divisible((reduced_base_chs or in_chs) * se_ratio, divisor)
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.conv_reduce = nn.Conv2d(in_chs, reduced_chs, 1, bias=True)
+        self.act1 = act_layer(inplace=True)
+        self.conv_expand = nn.Conv2d(reduced_chs, in_chs, 1, bias=True)
+
+    def forward(self, x):
+        # tensor.view + mean bad for ONNX export (produces mess of gather ops that break TensorRT)
+        x_se = self.avg_pool(x)
+        x_se = self.conv_reduce(x_se)
+        x_se = self.act1(x_se)
+        x_se = self.conv_expand(x_se)
+        x = x * self.gate_fn(x_se)
+        return x
+
+
 class ConvBnAct(nn.Module):
     def __init__(self, in_chs, out_chs, kernel_size,
-                 stride=1, pad_type='', act_layer=nn.ReLU, norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT):
+                 stride=1, pad_type='', act_layer=nn.ReLU, norm_layer=nn.BatchNorm2d, norm_kwargs=None):
         super(ConvBnAct, self).__init__()
         assert stride in [1, 2]
+        norm_kwargs = norm_kwargs or {}
         self.conv = select_conv2d(in_chs, out_chs, kernel_size, stride=stride, padding=pad_type)
         self.bn1 = norm_layer(out_chs, **norm_kwargs)
         self.act1 = act_layer(inplace=True)
@@ -82,11 +137,11 @@ class DepthwiseSeparableConv(nn.Module):
     """
     def __init__(self, in_chs, out_chs, dw_kernel_size=3,
                  stride=1, pad_type='', act_layer=nn.ReLU, noskip=False,
-                 pw_kernel_size=1, pw_act=False,
-                 se_ratio=0., se_gate_fn=sigmoid,
-                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, drop_connect_rate=0.):
+                 pw_kernel_size=1, pw_act=False, se_ratio=0., se_kwargs=None,
+                 norm_layer=nn.BatchNorm2d, norm_kwargs=None, drop_connect_rate=0.):
         super(DepthwiseSeparableConv, self).__init__()
         assert stride in [1, 2]
+        norm_kwargs = norm_kwargs or {}
         self.has_se = se_ratio is not None and se_ratio > 0.
         self.has_residual = (stride == 1 and in_chs == out_chs) and not noskip
         self.drop_connect_rate = drop_connect_rate
@@ -98,8 +153,8 @@ class DepthwiseSeparableConv(nn.Module):
 
         # Squeeze-and-excitation
         if self.has_se:
-            self.se = SqueezeExcite(
-                in_chs, reduce_chs=max(1, int(in_chs * se_ratio)), act_layer=act_layer, gate_fn=se_gate_fn)
+            se_kwargs = resolve_se_args(se_kwargs, in_chs, act_layer)
+            self.se = SqueezeExcite(in_chs, se_ratio=se_ratio, **se_kwargs)
         else:
             self.se = nn.Identity()
 
@@ -127,41 +182,18 @@ class DepthwiseSeparableConv(nn.Module):
         return x
 
 
-class SqueezeExcite(nn.Module):
-    __constants__ = ['gate_fn']
-
-    def __init__(self, in_chs, reduce_chs=None, act_layer=nn.ReLU, gate_fn=torch.sigmoid):
-        super(SqueezeExcite, self).__init__()
-        self.act_layer = act_layer
-        self.gate_fn = gate_fn
-        reduced_chs = reduce_chs or in_chs
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.conv_reduce = nn.Conv2d(in_chs, reduced_chs, 1, bias=True)
-        self.act1 = act_layer(inplace=True)
-        self.conv_expand = nn.Conv2d(reduced_chs, in_chs, 1, bias=True)
-
-    def forward(self, x):
-        # NOTE adaptiveavgpool bad for NVIDIA AMP performance
-        # tensor.view + mean bad for ONNX export (produces mess of gather ops that break TensorRT)
-        #x_se = x.view(x.size(0), x.size(1), -1).mean(-1).view(x.size(0), x.size(1), 1, 1)
-        x_se = self.avg_pool(x)
-        x_se = self.conv_reduce(x_se)
-        x_se = self.act1(x_se)
-        x_se = self.conv_expand(x_se)
-        x = x * self.gate_fn(x_se)
-        return x
-
-
 class InvertedResidual(nn.Module):
     """ Inverted residual block w/ optional SE"""
 
     def __init__(self, in_chs, out_chs, dw_kernel_size=3,
                  stride=1, pad_type='', act_layer=nn.ReLU, noskip=False,
                  exp_ratio=1.0, exp_kernel_size=1, pw_kernel_size=1,
-                 se_ratio=0., se_reduce_mid=False, se_gate_fn=sigmoid,
-                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, conv_kwargs={}, drop_connect_rate=0.):
+                 se_ratio=0., se_kwargs=None, norm_layer=nn.BatchNorm2d, norm_kwargs=None,
+                 conv_kwargs=None, drop_connect_rate=0.):
         super(InvertedResidual, self).__init__()
-        mid_chs: int = int(in_chs * exp_ratio)
+        norm_kwargs = norm_kwargs or {}
+        conv_kwargs = conv_kwargs or {}
+        mid_chs: int = make_divisible(in_chs * exp_ratio)
         self.has_se = se_ratio is not None and se_ratio > 0.
         self.has_residual = (in_chs == out_chs and stride == 1) and not noskip
         self.drop_connect_rate = drop_connect_rate
@@ -179,9 +211,8 @@ class InvertedResidual(nn.Module):
 
         # Squeeze-and-excitation
         if self.has_se:
-            se_base_chs = mid_chs if se_reduce_mid else in_chs
-            self.se = SqueezeExcite(
-                mid_chs, reduce_chs=max(1, int(se_base_chs * se_ratio)), act_layer=act_layer, gate_fn=se_gate_fn)
+            se_kwargs = resolve_se_args(se_kwargs, in_chs, act_layer)
+            self.se = SqueezeExcite(mid_chs, se_ratio=se_ratio, **se_kwargs)
         else:
             self.se = nn.Identity()  # for jit.script compat
 
@@ -222,8 +253,8 @@ class CondConvResidual(InvertedResidual):
     def __init__(self, in_chs, out_chs, dw_kernel_size=3,
                  stride=1, pad_type='', act_layer=nn.ReLU, noskip=False,
                  exp_ratio=1.0, exp_kernel_size=1, pw_kernel_size=1,
-                 se_ratio=0., se_reduce_mid=False, se_gate_fn=sigmoid,
-                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, num_experts=0, drop_connect_rate=0.):
+                 se_ratio=0., se_kwargs=None, norm_layer=nn.BatchNorm2d, norm_kwargs=None,
+                 num_experts=0, drop_connect_rate=0.):
 
         self.num_experts = num_experts
         conv_kwargs = dict(num_experts=self.num_experts)
@@ -231,7 +262,7 @@ class CondConvResidual(InvertedResidual):
         super(CondConvResidual, self).__init__(
             in_chs, out_chs, dw_kernel_size=dw_kernel_size, stride=stride, pad_type=pad_type,
             act_layer=act_layer, noskip=noskip, exp_ratio=exp_ratio, exp_kernel_size=exp_kernel_size,
-            pw_kernel_size=pw_kernel_size, se_ratio=se_ratio, se_reduce_mid=se_reduce_mid, se_gate_fn=se_gate_fn,
+            pw_kernel_size=pw_kernel_size, se_ratio=se_ratio, se_kwargs=se_kwargs,
             norm_layer=norm_layer, norm_kwargs=norm_kwargs, conv_kwargs=conv_kwargs,
             drop_connect_rate=drop_connect_rate)
 
@@ -273,10 +304,10 @@ class EdgeResidual(nn.Module):
 
     def __init__(self, in_chs, out_chs, exp_kernel_size=3, exp_ratio=1.0, fake_in_chs=0,
                  stride=1, pad_type='', act_layer=nn.ReLU, noskip=False, pw_kernel_size=1,
-                 se_ratio=0., se_reduce_mid=False, se_gate_fn=sigmoid,
-                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, drop_connect_rate=0.):
+                 se_ratio=0., se_kwargs=None, norm_layer=nn.BatchNorm2d, norm_kwargs=None, drop_connect_rate=0.):
         super(EdgeResidual, self).__init__()
-        mid_chs = int(fake_in_chs * exp_ratio) if fake_in_chs > 0 else int(in_chs * exp_ratio)
+        norm_kwargs = norm_kwargs or {}
+        mid_chs = make_divisible(fake_in_chs * exp_ratio) if fake_in_chs > 0 else make_divisible(in_chs * exp_ratio)
         self.has_se = se_ratio is not None and se_ratio > 0.
         self.has_residual = (in_chs == out_chs and stride == 1) and not noskip
         self.drop_connect_rate = drop_connect_rate
@@ -288,9 +319,8 @@ class EdgeResidual(nn.Module):
 
         # Squeeze-and-excitation
         if self.has_se:
-            se_base_chs = mid_chs if se_reduce_mid else in_chs
-            self.se = SqueezeExcite(
-                mid_chs, reduce_chs=max(1, int(se_base_chs * se_ratio)), act_layer=act_layer, gate_fn=se_gate_fn)
+            se_kwargs = resolve_se_args(se_kwargs, in_chs, act_layer)
+            self.se = SqueezeExcite(mid_chs, se_ratio=se_ratio, **se_kwargs)
         else:
             self.se = nn.Identity()
 
@@ -332,15 +362,14 @@ class EfficientNetBuilder:
     """
 
     def __init__(self, channel_multiplier=1.0, channel_divisor=8, channel_min=None,
-                 pad_type='', act_layer=None, se_gate_fn=sigmoid, se_reduce_mid=False,
-                 norm_layer=nn.BatchNorm2d, norm_kwargs=BN_ARGS_PT, drop_connect_rate=0.):
+                 pad_type='', act_layer=None, se_kwargs=None,
+                 norm_layer=nn.BatchNorm2d, norm_kwargs=None, drop_connect_rate=0.):
         self.channel_multiplier = channel_multiplier
         self.channel_divisor = channel_divisor
         self.channel_min = channel_min
         self.pad_type = pad_type
         self.act_layer = act_layer
-        self.se_gate_fn = se_gate_fn
-        self.se_reduce_mid = se_reduce_mid
+        self.se_kwargs = se_kwargs
         self.norm_layer = norm_layer
         self.norm_kwargs = norm_kwargs
         self.drop_connect_rate = drop_connect_rate
@@ -368,19 +397,18 @@ class EfficientNetBuilder:
         assert ba['act_layer'] is not None
         if bt == 'ir':
             ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
-            ba['se_gate_fn'] = self.se_gate_fn
-            ba['se_reduce_mid'] = self.se_reduce_mid
+            ba['se_kwargs'] = self.se_kwargs
             if ba.get('num_experts', 0) > 0:
                 block = CondConvResidual(**ba)
             else:
                 block = InvertedResidual(**ba)
         elif bt == 'ds' or bt == 'dsa':
             ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
+            ba['se_kwargs'] = self.se_kwargs
             block = DepthwiseSeparableConv(**ba)
         elif bt == 'er':
             ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
-            ba['se_gate_fn'] = self.se_gate_fn
-            ba['se_reduce_mid'] = self.se_reduce_mid
+            ba['se_kwargs'] = self.se_kwargs
             block = EdgeResidual(**ba)
         elif bt == 'cn':
             block = ConvBnAct(**ba)
