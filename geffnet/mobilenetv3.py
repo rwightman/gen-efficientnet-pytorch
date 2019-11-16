@@ -121,9 +121,9 @@ def _gen_mobilenet_v3_rw(variant, channel_multiplier=1.0, pretrained=False, **kw
     This was my first attempt at reproducing the MobileNet-V3 from paper alone. It came close to the
     eventual Tensorflow reference impl but has a few differences:
     1. This model has no bias on the head convolution
-    2. This model forces no residual (noskip) on the first DWS block, this is different than MnasNet and means
-    3. This model always uses ReLU for the SE activation layer, other models in the family inherit from the containing
-       block activation
+    2. This model forces no residual (noskip) on the first DWS block, this is different than MnasNet
+    3. This model always uses ReLU for the SE activation layer, other models in the family inherit their act layer
+       from their parent block
     4. This model does not enforce divisible by 8 limitation on the SE reduction channel count
 
     Overall the changes are fairly minor and result in a very small parameter count difference and no
@@ -297,19 +297,19 @@ def mobilenetv3_small_075(pretrained=False, **kwargs):
 
 
 def mobilenetv3_small_100(pretrained=False, **kwargs):
-    """ MobileNet V3 Small 1.0"""
+    """ MobileNet V3 Small 1.0 """
     model = _gen_mobilenet_v3('mobilenetv3_small_100', 1.0, pretrained=pretrained, **kwargs)
     return model
 
 
 def mobilenetv3_small_minimal_100(pretrained=False, **kwargs):
-    """ MobileNet V3 Small (Minimalistic) 1.0"""
+    """ MobileNet V3 Small (Minimalistic) 1.0 """
     model = _gen_mobilenet_v3('mobilenetv3_small_minimal_100', 1.0, pretrained=pretrained, **kwargs)
     return model
 
 
 def tf_mobilenetv3_large_075(pretrained=False, **kwargs):
-    """ MobileNet V3 """
+    """ MobileNet V3 Large 0.75. Tensorflow compat variant. """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_mobilenet_v3('tf_mobilenetv3_large_075', 0.75, pretrained=pretrained, **kwargs)
@@ -317,7 +317,7 @@ def tf_mobilenetv3_large_075(pretrained=False, **kwargs):
 
 
 def tf_mobilenetv3_large_100(pretrained=False, **kwargs):
-    """ MobileNet V3 """
+    """ MobileNet V3 Large 1.0. Tensorflow compat variant. """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_mobilenet_v3('tf_mobilenetv3_large_100', 1.0, pretrained=pretrained, **kwargs)
@@ -325,7 +325,7 @@ def tf_mobilenetv3_large_100(pretrained=False, **kwargs):
 
 
 def tf_mobilenetv3_large_minimal_100(pretrained=False, **kwargs):
-    """ MobileNet V3 """
+    """ MobileNet V3 Large Minimalistic 1.0. Tensorflow compat variant. """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_mobilenet_v3('tf_mobilenetv3_large_minimal_100', 1.0, pretrained=pretrained, **kwargs)
@@ -333,7 +333,7 @@ def tf_mobilenetv3_large_minimal_100(pretrained=False, **kwargs):
 
 
 def tf_mobilenetv3_small_075(pretrained=False, **kwargs):
-    """ MobileNet V3 """
+    """ MobileNet V3 Small 0.75. Tensorflow compat variant. """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_mobilenet_v3('tf_mobilenetv3_small_075', 0.75, pretrained=pretrained, **kwargs)
@@ -341,7 +341,7 @@ def tf_mobilenetv3_small_075(pretrained=False, **kwargs):
 
 
 def tf_mobilenetv3_small_100(pretrained=False, **kwargs):
-    """ MobileNet V3 """
+    """ MobileNet V3 Small 1.0. Tensorflow compat variant."""
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_mobilenet_v3('tf_mobilenetv3_small_100', 1.0, pretrained=pretrained, **kwargs)
@@ -349,7 +349,7 @@ def tf_mobilenetv3_small_100(pretrained=False, **kwargs):
 
 
 def tf_mobilenetv3_small_minimal_100(pretrained=False, **kwargs):
-    """ MobileNet V3 """
+    """ MobileNet V3 Small Minimalistic 1.0. Tensorflow compat variant. """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_mobilenet_v3('tf_mobilenetv3_small_minimal_100', 1.0, pretrained=pretrained, **kwargs)
