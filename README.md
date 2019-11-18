@@ -159,7 +159,7 @@ pip install geffnet
 Eval use:
 ```
 >>> import geffnet
->>> m = geffnet.create_model('mobilenetv3_100', pretrained=True)
+>>> m = geffnet.create_model('mobilenetv3_rw', pretrained=True)
 >>> m.eval()
 ```
 
@@ -183,8 +183,9 @@ Scripts to export models to ONNX and then to Caffe2 are included, along with a C
 
 As an example, to export the MobileNet-V3 pretrained model and then run an Imagenet validation:
 ```
-python onnx_export.py --model mobilenetv3_100 ./mobilenetv3_100.onnx
-python onnx_to_caffe.py ./mobilenetv3_100.onnx --c2-prefix mobilenetv3
+python onnx_export.py --model tf_mobilenetv3_large_100 ./mobilenetv3_100.onnx
+python onnx_optimize.py ./mobilenetv3_100.onnx --output ./mobilenetv3_100-opt.onnx
+python onnx_to_caffe.py ./mobilenetv3_100-opt.onnx --c2-prefix mobilenetv3
 python caffe2_validate.py /imagenet/validation/ --c2-init ./mobilenetv3.init.pb --c2-predict ./mobilenetv3.predict.pb --interpolation bicubic
 ```
 **NOTE** the TF ported weights with the 'SAME' conv padding activated cannot be exported to ONNX unless `_EXPORTABLE` flag in `config.py` is set to True. Use `config.set_exportable(True)` as in the updated `onnx_export.py` example script.
