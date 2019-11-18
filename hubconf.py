@@ -6,7 +6,8 @@ from geffnet import efficientnet_b2
 from geffnet import mixnet_s
 from geffnet import mixnet_m
 from geffnet import mixnet_l
-from geffnet import mobilenetv3_100
+from geffnet import mixnet_xl
+from geffnet import mobilenetv3_rw
 from geffnet import mnasnet_a1
 from geffnet import mnasnet_b1
 from geffnet import fbnetc_100
@@ -23,6 +24,15 @@ from geffnet import tf_efficientnet_b7
 from geffnet import tf_efficientnet_es
 from geffnet import tf_efficientnet_em
 from geffnet import tf_efficientnet_el
+from geffnet import tf_efficientnet_cc_b0_4e
+from geffnet import tf_efficientnet_cc_b0_8e
+from geffnet import tf_efficientnet_cc_b1_8e
 from geffnet import tf_mixnet_s
 from geffnet import tf_mixnet_m
 from geffnet import tf_mixnet_l
+from geffnet import tf_mobilenetv3_large_075
+from geffnet import tf_mobilenetv3_large_100
+from geffnet import tf_mobilenetv3_large_minimal_100
+from geffnet import tf_mobilenetv3_small_075
+from geffnet import tf_mobilenetv3_small_100
+from geffnet import tf_mobilenetv3_small_minimal_100
