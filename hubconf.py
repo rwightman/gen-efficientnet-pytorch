@@ -21,6 +21,15 @@ from geffnet import tf_efficientnet_b4
 from geffnet import tf_efficientnet_b5
 from geffnet import tf_efficientnet_b6
 from geffnet import tf_efficientnet_b7
+from geffnet import tf_efficientnet_b0_ap
+from geffnet import tf_efficientnet_b1_ap
+from geffnet import tf_efficientnet_b2_ap
+from geffnet import tf_efficientnet_b3_ap
+from geffnet import tf_efficientnet_b4_ap
+from geffnet import tf_efficientnet_b5_ap
+from geffnet import tf_efficientnet_b6_ap
+from geffnet import tf_efficientnet_b7_ap
+from geffnet import tf_efficientnet_b8_ap
 from geffnet import tf_efficientnet_es
 from geffnet import tf_efficientnet_em
 from geffnet import tf_efficientnet_el
