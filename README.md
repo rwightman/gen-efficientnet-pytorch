@@ -74,15 +74,18 @@ More pretrained models to come...
 
 The weights ported from Tensorflow checkpoints for the EfficientNet models do pretty much match accuracy in Tensorflow once a SAME convolution padding equivalent is added, and the same crop factors, image scaling, etc (see table) are used via cmd line args.
 
-Ex, to run validation for tf_efficientnet_b5:
+**IMPORTANT:** 
+* Tensorflow ported weights for EfficientNet AdvProp (AP), EfficientNet EdgeTPU, EfficientNet-CondConv, and MobileNet-V3 models use Inception style (0.5, 0.5, 0.5) for mean and std.
+* Enabling the Tensorflow preprocessing pipeline with `--tf-preprocessing` at validation time will improve scores by 0.1-0.5%, very close to original TF impl.
+
+To run validation for tf_efficientnet_b5:
 `python validate.py /path/to/imagenet/validation/ --model tf_efficientnet_b5 -b 64 --img-size 456 --crop-pct 0.934 --interpolation bicubic`
 
-Enabling the Tensorflow preprocessing pipeline with `--tf-preprocessing` at validation time will improve these scores by 0.1-0.5% as it's closer to what these models were trained with.
-
-Ex, to run validation w/ TF preprocessing for tf_efficientnet_b5:
+To run validation w/ TF preprocessing for tf_efficientnet_b5:
 `python validate.py /path/to/imagenet/validation/ --model tf_efficientnet_b5 -b 64 --img-size 456 --tf-preprocessing`
 
-TF EfficientNet AdvProp (AP), EfficientNet EdgeTPU, EfficientNet-CondConv, and MobileNet-V3 models use different normalization consts. Use Inception style 0.5, 0.5, 0.5 for mean and std.
+To run validation for a model with Inception preprocessing, ie EfficientNet-B8 AdvProp:
+`python validate.py /path/to/imagenet/validation/ --model tf_efficientnet_b8_ap -b 48 --num-gpu 2 --img-size 672 --crop-pct 0.954 --mean 0.5 --std 0.5`
 
 |Model | Prec@1 (Err) | Prec@5 (Err) | Param # | Image Scaling  | Image Size | Crop | 
 |---|---|---|---|---|---|---|
