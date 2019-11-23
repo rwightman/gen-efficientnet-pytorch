@@ -21,7 +21,6 @@ def mish(x, inplace: bool = False):
     """Mish: A Self Regularized Non-Monotonic Neural Activation Function - https://arxiv.org/abs/1908.08681
     """
     return x.mul(F.softplus(x).tanh())
-    #return x.mul_(inner) if inplace else x.mul(inner)  # unexpected inplace issue with this
 
 
 class Mish(nn.Module):
