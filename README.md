@@ -7,7 +7,7 @@ All models are implemented by GenEfficientNet or MobileNetV3 classes, with strin
 ## What's New
 
 ### Nov 22, 2019
- * New top-1 high! Ported official TF EfficientNet AdvProp (https://arxiv.org/abs/1911.08609) weights and B8 model spec. Created a new set of `ap` models since they use a different
+ * New top-1 high! Ported official TF EfficientNet AdvProp (https://arxiv.org/abs/1911.09665) weights and B8 model spec. Created a new set of `ap` models since they use a different
  preprocessing (Inception mean/std) from the original EfficientNet base/AA/RA weights.
  
 ### Nov 15, 2019
