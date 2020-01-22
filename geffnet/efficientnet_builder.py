@@ -92,7 +92,6 @@ def drop_connect(inputs, training: bool = False, drop_connect_rate: float = 0.):
 
 
 class SqueezeExcite(nn.Module):
-    __constants__ = ['gate_fn']
 
     def __init__(self, in_chs, se_ratio=0.25, reduced_base_chs=None, act_layer=nn.ReLU, gate_fn=sigmoid, divisor=1):
         super(SqueezeExcite, self).__init__()
@@ -142,7 +141,6 @@ class DepthwiseSeparableConv(nn.Module):
         super(DepthwiseSeparableConv, self).__init__()
         assert stride in [1, 2]
         norm_kwargs = norm_kwargs or {}
-        self.has_se = se_ratio is not None and se_ratio > 0.
         self.has_residual = (stride == 1 and in_chs == out_chs) and not noskip
         self.drop_connect_rate = drop_connect_rate
 
@@ -152,7 +150,7 @@ class DepthwiseSeparableConv(nn.Module):
         self.act1 = act_layer(inplace=True)
 
         # Squeeze-and-excitation
-        if self.has_se:
+        if se_ratio is not None and se_ratio > 0.:
             se_kwargs = resolve_se_args(se_kwargs, in_chs, act_layer)
             self.se = SqueezeExcite(in_chs, se_ratio=se_ratio, **se_kwargs)
         else:
@@ -194,7 +192,6 @@ class InvertedResidual(nn.Module):
         norm_kwargs = norm_kwargs or {}
         conv_kwargs = conv_kwargs or {}
         mid_chs: int = make_divisible(in_chs * exp_ratio)
-        self.has_se = se_ratio is not None and se_ratio > 0.
         self.has_residual = (in_chs == out_chs and stride == 1) and not noskip
         self.drop_connect_rate = drop_connect_rate
 
@@ -210,7 +207,7 @@ class InvertedResidual(nn.Module):
         self.act2 = act_layer(inplace=True)
 
         # Squeeze-and-excitation
-        if self.has_se:
+        if se_ratio is not None and se_ratio > 0.:
             se_kwargs = resolve_se_args(se_kwargs, in_chs, act_layer)
             self.se = SqueezeExcite(mid_chs, se_ratio=se_ratio, **se_kwargs)
         else:
@@ -308,7 +305,6 @@ class EdgeResidual(nn.Module):
         super(EdgeResidual, self).__init__()
         norm_kwargs = norm_kwargs or {}
         mid_chs = make_divisible(fake_in_chs * exp_ratio) if fake_in_chs > 0 else make_divisible(in_chs * exp_ratio)
-        self.has_se = se_ratio is not None and se_ratio > 0.
         self.has_residual = (in_chs == out_chs and stride == 1) and not noskip
         self.drop_connect_rate = drop_connect_rate
 
@@ -318,7 +314,7 @@ class EdgeResidual(nn.Module):
         self.act1 = act_layer(inplace=True)
 
         # Squeeze-and-excitation
-        if self.has_se:
+        if se_ratio is not None and se_ratio > 0.:
             se_kwargs = resolve_se_args(se_kwargs, in_chs, act_layer)
             self.se = SqueezeExcite(mid_chs, se_ratio=se_ratio, **se_kwargs)
         else:

@@ -144,12 +144,10 @@ def create_conv2d_pad(in_chs, out_chs, kernel_size, **kwargs):
         return nn.Conv2d(in_chs, out_chs, kernel_size, padding=padding, **kwargs)
 
 
-class MixedConv2d(nn.Module):
+class MixedConv2d(nn.ModuleDict):
     """ Mixed Grouped Convolution
     Based on MDConv and GroupedConv in MixNet impl:
       https://github.com/tensorflow/tpu/blob/master/models/official/mnasnet/mixnet/custom_layers.py
-
-    NOTE: This does not currently work with torch.jit.script
     """
 
     def __init__(self, in_channels, out_channels, kernel_size=3,
@@ -160,9 +158,10 @@ class MixedConv2d(nn.Module):
         num_groups = len(kernel_size)
         in_splits = _split_channels(in_channels, num_groups)
         out_splits = _split_channels(out_channels, num_groups)
+        self.in_channels = sum(in_splits)
+        self.out_channels = sum(out_splits)
         for idx, (k, in_ch, out_ch) in enumerate(zip(kernel_size, in_splits, out_splits)):
             conv_groups = out_ch if depthwise else 1
-            # use add_module to keep key space clean
             self.add_module(
                 str(idx),
                 create_conv2d_pad(
@@ -173,7 +172,7 @@ class MixedConv2d(nn.Module):
 
     def forward(self, x):
         x_split = torch.split(x, self.splits, 1)
-        x_out = [c(x) for x, c in zip(x_split, self._modules.values())]
+        x_out = [conv(x_split[i]) for i, conv in enumerate(self.values())]
         x = torch.cat(x_out, 1)
         return x
 
