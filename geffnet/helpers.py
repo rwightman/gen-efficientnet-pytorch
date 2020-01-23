@@ -29,6 +29,10 @@ def load_checkpoint(model, checkpoint_path):
 
 
 def load_pretrained(model, url, filter_fn=None, strict=True):
+    if not url:
+        print("=> Warning: Pretrained model URL is empty, using random initialization.")
+        return
+
     state_dict = load_state_dict_from_url(url, progress=False, map_location='cpu')
 
     input_conv = 'conv_stem'
