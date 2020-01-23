@@ -6,6 +6,11 @@ All models are implemented by GenEfficientNet or MobileNetV3 classes, with strin
 
 ## What's New
 
+### Jan 22, 2020
+ * Update weights for EfficientNet B0, B2, B3 and MixNet-XL with latest RandAugment trained weights. Trained with (https://github.com/rwightman/pytorch-image-models)
+ * Fix torchscript compatibility for PyTorch 1.4, add torchscript support for MixedConv2d using ModuleDict
+ * Test models, torchscript, onnx export with PyTorch 1.4 -- no issues
+
 ### Nov 22, 2019
  * New top-1 high! Ported official TF EfficientNet AdvProp (https://arxiv.org/abs/1911.09665) weights and B8 model spec. Created a new set of `ap` models since they use a different
  preprocessing (Inception mean/std) from the original EfficientNet base/AA/RA weights.
@@ -53,12 +58,16 @@ I've managed to train several of the models to accuracies close to or above the 
 
 |Model | Prec@1 (Err) | Prec@5 (Err) | Param#(M) | MAdds(M) | Image Scaling | Resolution | Crop |
 |---|---|---|---|---|---|---|---|
-| mixnet_xl | 80.120 (19.880) | 95.022 (4.978) | 11.90 | TBD | bicubic | 224 | 0.875 |
+| efficientnet_b3 | 81.866 (18.134) | 95.836 (4.164) | 12.23 | TBD | bicubic | 320 | 1.0 |
+| efficientnet_b3 | 81.508 (18.492) | 95.672 (4.328) | 12.23 | TBD | bicubic | 300 | 0.903 |
+| mixnet_xl | 81.074 (18.926) | 95.282 (4.718) | 11.90 | TBD | bicubic | 256 | 1.0 |
+| efficientnet_b2 | 80.612 (19.388) | 95.318 (4.682) | 9.1 | TBD | bicubic | 288 | 1.0 |
+| mixnet_xl | 80.476 (19.524) | 94.936 (5.064) | 11.90 | TBD | bicubic | 224 | 0.875 |
+| efficientnet_b2 | 80.288 (19.712) | 95.166 (4.834) | 9.1 | 1003 | bicubic | 260 | 0.890 |
 | mixnet_l | 78.976 (21.024 | 94.184 (5.816) | 7.33 | TBD | bicubic | 224 | 0.875 |
-| efficientnet_b2 | 79.668 (20.332) | 94.634 (5.366) | 9.1 | 1003 | bicubic | 260 | 0.890 |
 | efficientnet_b1 | 78.692 (21.308) | 94.086 (5.914) | 7.8 | 694 | bicubic | 240 | 0.882 |
+| efficientnet_b0 | 77.698 (22.302) | 93.532 (6.468) | 5.3 | 390 | bicubic | 224 | 0.875 |
 | mixnet_m | 77.256 (22.744) | 93.418 (6.582) | 5.01 | 353 | bicubic | 224 | 0.875 |
-| efficientnet_b0 | 76.912 (23.088) | 93.210 (6.790) | 5.3 | 390 | bicubic | 224 | 0.875 |
 | mixnet_s | 75.988 (24.012) | 92.794 (7.206) | 4.13 | TBD | bicubic | 224 | 0.875 |
 | mobilenetv3_rw | 75.634 (24.366) | 92.708 (7.292) | 5.5 | 219 | bicubic | 224 | 0.875 |
 | mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.9 | 312 | bicubic | 224 | 0.875 |
@@ -162,7 +171,24 @@ Google tf and tflite weights ported from official Tensorflow repositories
 * https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet
 * https://github.com/tensorflow/models/tree/master/research/slim/nets/mobilenet
 
-## PyTorch Hub
+## Usage
+
+### Environment
+
+All development and testing has been done in Conda Python 3 environments on Linux x86-64 systems, specifically Python 3.6.x and 3.7.x.
+
+Users have reported that a Python 3 Anaconda install in Windows works. I have not verified this myself.
+
+PyTorch versions 1.2. 1.3.1, 1.4 have been tested with this code.
+
+I've tried to keep the dependencies minimal, the setup is as per the PyTorch default install instructions for Conda:
+```
+conda create -n torch-env
+conda activate torch-env
+conda install -c pytorch pytorch torchvision cudatoolkit=10
+```
+
+### PyTorch Hub
 
 Models can be accessed via the PyTorch Hub API
 
@@ -203,7 +229,7 @@ Create in a nn.Sequential container, for fast.ai, etc:
 >>> m = geffnet.mixnet_l(pretrained=True, drop_rate=0.25, drop_connect_rate=0.2, as_sequential=True)
 ```
 
-## Exporting
+### Exporting
 
 Scripts to export models to ONNX and then to Caffe2 are included, along with a Caffe2 script to verify.
 
