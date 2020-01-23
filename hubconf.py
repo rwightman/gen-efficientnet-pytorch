@@ -3,6 +3,7 @@ dependencies = ['torch', 'math']
 from geffnet import efficientnet_b0
 from geffnet import efficientnet_b1
 from geffnet import efficientnet_b2
+from geffnet import efficientnet_b3
 from geffnet import mixnet_s
 from geffnet import mixnet_m
 from geffnet import mixnet_l
