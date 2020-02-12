@@ -2,10 +2,11 @@
 
 A generic MobileNet class with building blocks to support a variety of models:
 
-* EfficientNet (B0-B8 + Tensorflow pretrained AutoAug/RandAug/AdvProp ports)
+* EfficientNet (B0-B8, L2 + Tensorflow pretrained AutoAug/RandAug/AdvProp/NoisyStudent ports)
   - EfficientNet: Rethinking Model Scaling for CNNs - https://arxiv.org/abs/1905.11946
   - CondConv: Conditionally Parameterized Convolutions for Efficient Inference - https://arxiv.org/abs/1904.04971
   - Adversarial Examples Improve Image Recognition - https://arxiv.org/abs/1911.09665
+  - Self-training with Noisy Student improves ImageNet classification - https://arxiv.org/abs/1911.04252
 
 * MixNet (Small, Medium, and Large)
   - MixConv: Mixed Depthwise Convolutional Kernels - https://arxiv.org/abs/1907.09595
@@ -33,13 +34,16 @@ __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnas
            'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'mnasnet_a1', 'semnasnet_140', 'mnasnet_small',
            'fbnetc_100', 'spnasnet_100', 'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2',  'efficientnet_b3',
            'efficientnet_b4', 'efficientnet_b5', 'efficientnet_b6', 'efficientnet_b7', 'efficientnet_b8',
-           'efficientnet_es', 'efficientnet_em', 'efficientnet_el',
+           'efficientnet_l2', 'efficientnet_es', 'efficientnet_em', 'efficientnet_el',
            'efficientnet_cc_b0_4e', 'efficientnet_cc_b0_8e', 'efficientnet_cc_b1_8e',
            'tf_efficientnet_b0', 'tf_efficientnet_b1', 'tf_efficientnet_b2', 'tf_efficientnet_b3',
-           'tf_efficientnet_b4', 'tf_efficientnet_b5', 'tf_efficientnet_b6', 'tf_efficientnet_b7',
+           'tf_efficientnet_b4', 'tf_efficientnet_b5', 'tf_efficientnet_b6', 'tf_efficientnet_b7', 'tf_efficientnet_b8',
            'tf_efficientnet_b0_ap', 'tf_efficientnet_b1_ap', 'tf_efficientnet_b2_ap', 'tf_efficientnet_b3_ap',
            'tf_efficientnet_b4_ap', 'tf_efficientnet_b5_ap', 'tf_efficientnet_b6_ap', 'tf_efficientnet_b7_ap',
-           'tf_efficientnet_b8_ap', 'tf_efficientnet_es', 'tf_efficientnet_em', 'tf_efficientnet_el',
+           'tf_efficientnet_b8_ap', 'tf_efficientnet_b0_ns', 'tf_efficientnet_b1_ns', 'tf_efficientnet_b2_ns',
+           'tf_efficientnet_b3_ns', 'tf_efficientnet_b4_ns', 'tf_efficientnet_b5_ns', 'tf_efficientnet_b6_ns',
+           'tf_efficientnet_b7_ns', 'tf_efficientnet_l2_ns', 'tf_efficientnet_l2_ns_475',
+           'tf_efficientnet_es', 'tf_efficientnet_em', 'tf_efficientnet_el',
            'tf_efficientnet_cc_b0_4e', 'tf_efficientnet_cc_b0_8e', 'tf_efficientnet_cc_b1_8e',
            'mixnet_s', 'mixnet_m', 'mixnet_l', 'mixnet_xl', 'tf_mixnet_s', 'tf_mixnet_m', 'tf_mixnet_l']
 
@@ -60,6 +64,7 @@ model_urls = {
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/fbnetc_100-c345b898.pth',
     'spnasnet_100':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/spnasnet_100-048bc3f4.pth',
+
     'efficientnet_b0':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_b0_ra-3dd342df.pth',
     'efficientnet_b1':
@@ -73,12 +78,17 @@ model_urls = {
     'efficientnet_b6': None,
     'efficientnet_b7': None,
     'efficientnet_b8': None,
-    'efficientnet_es': None,
+    'efficientnet_l2': None,
+
+    'efficientnet_es':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_es_ra-f111e99c.pth',
     'efficientnet_em': None,
     'efficientnet_el': None,
+
     'efficientnet_cc_b0_4e': None,
     'efficientnet_cc_b0_8e': None,
     'efficientnet_cc_b1_8e': None,
+
     'tf_efficientnet_b0':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b0_aa-827b6e33.pth',
     'tf_efficientnet_b1':
@@ -95,6 +105,9 @@ model_urls = {
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b6_aa-80ba17e4.pth',
     'tf_efficientnet_b7':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b7_ra-6c08e654.pth',
+    'tf_efficientnet_b8':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b8_ra-572d5dd9.pth',
+
     'tf_efficientnet_b0_ap':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b0_ap-f262efe1.pth',
     'tf_efficientnet_b1_ap':
@@ -113,22 +126,47 @@ model_urls = {
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b7_ap-ddb28fec.pth',
     'tf_efficientnet_b8_ap':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b8_ap-00e169fa.pth',
+
+    'tf_efficientnet_b0_ns':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b0_ns-c0e6a31c.pth',
+    'tf_efficientnet_b1_ns':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b1_ns-99dd0c41.pth',
+    'tf_efficientnet_b2_ns':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b2_ns-00306e48.pth',
+    'tf_efficientnet_b3_ns':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b3_ns-9d44bf68.pth',
+    'tf_efficientnet_b4_ns':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b4_ns-d6313a46.pth',
+    'tf_efficientnet_b5_ns':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b5_ns-6f26d0cf.pth',
+    'tf_efficientnet_b6_ns':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b6_ns-51548356.pth',
+    'tf_efficientnet_b7_ns':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b7_ns-1dbc32de.pth',
+    'tf_efficientnet_l2_ns_475':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_l2_ns_475-bebbd00a.pth',
+    'tf_efficientnet_l2_ns':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_l2_ns-df73bb44.pth',
+
     'tf_efficientnet_es':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_es-ca1afbfe.pth',
     'tf_efficientnet_em':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_em-e78cfe58.pth',
     'tf_efficientnet_el':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_el-5143854e.pth',
+
     'tf_efficientnet_cc_b0_4e':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_cc_b0_4e-4362b6b2.pth',
     'tf_efficientnet_cc_b0_8e':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_cc_b0_8e-66184a25.pth',
     'tf_efficientnet_cc_b1_8e':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_cc_b1_8e-f7c79ae1.pth',
+
     'mixnet_s': 'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mixnet_s-a907afbc.pth',
     'mixnet_m': 'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mixnet_m-4647fc68.pth',
     'mixnet_l': 'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mixnet_l-5a9a2ed8.pth',
     'mixnet_xl': 'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mixnet_xl_ra-aac3c00c.pth',
+
     'tf_mixnet_s':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_mixnet_s-89d3354b.pth',
     'tf_mixnet_m':
@@ -142,7 +180,7 @@ class GenEfficientNet(nn.Module):
     """ Generic EfficientNets
 
     An implementation of mobile optimized networks that covers:
-      * EfficientNet (B0-B8, CondConv, EdgeTPU)
+      * EfficientNet (B0-B8, L2, CondConv, EdgeTPU)
       * MixNet (Small, Medium, and Large, XL)
       * MNASNet A1, B1, and small
       * FBNet C
@@ -702,6 +740,14 @@ def efficientnet_b8(pretrained=False, **kwargs):
     return model
 
 
+def efficientnet_l2(pretrained=False, **kwargs):
+    """ EfficientNet-L2. """
+    # NOTE for train, drop_rate should be 0.5
+    model = _gen_efficientnet(
+        'efficientnet_l2', channel_multiplier=4.3, depth_multiplier=5.3, pretrained=pretrained, **kwargs)
+    return model
+
+
 def efficientnet_es(pretrained=False, **kwargs):
     """ EfficientNet-Edge Small. """
     model = _gen_efficientnet_edge(
@@ -750,7 +796,7 @@ def efficientnet_cc_b1_8e(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b0(pretrained=False, **kwargs):
-    """ EfficientNet-B0. Tensorflow compatible variant  """
+    """ EfficientNet-B0 AutoAug. Tensorflow compatible variant  """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -759,7 +805,7 @@ def tf_efficientnet_b0(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b1(pretrained=False, **kwargs):
-    """ EfficientNet-B1. Tensorflow compatible variant  """
+    """ EfficientNet-B1 AutoAug. Tensorflow compatible variant  """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -768,7 +814,7 @@ def tf_efficientnet_b1(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b2(pretrained=False, **kwargs):
-    """ EfficientNet-B2. Tensorflow compatible variant  """
+    """ EfficientNet-B2 AutoAug. Tensorflow compatible variant  """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -777,7 +823,7 @@ def tf_efficientnet_b2(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b3(pretrained=False, num_classes=1000, in_chans=3, **kwargs):
-    """ EfficientNet-B3. Tensorflow compatible variant """
+    """ EfficientNet-B3 AutoAug. Tensorflow compatible variant """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -786,7 +832,7 @@ def tf_efficientnet_b3(pretrained=False, num_classes=1000, in_chans=3, **kwargs)
 
 
 def tf_efficientnet_b4(pretrained=False, **kwargs):
-    """ EfficientNet-B4. Tensorflow compatible variant """
+    """ EfficientNet-B4 AutoAug. Tensorflow compatible variant """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -795,7 +841,7 @@ def tf_efficientnet_b4(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b5(pretrained=False, **kwargs):
-    """ EfficientNet-B5. Tensorflow compatible variant """
+    """ EfficientNet-B5 RandAug. Tensorflow compatible variant """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -804,7 +850,7 @@ def tf_efficientnet_b5(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b6(pretrained=False, **kwargs):
-    """ EfficientNet-B6. Tensorflow compatible variant """
+    """ EfficientNet-B6 AutoAug. Tensorflow compatible variant """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -813,7 +859,7 @@ def tf_efficientnet_b6(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b7(pretrained=False, **kwargs):
-    """ EfficientNet-B7. Tensorflow compatible variant """
+    """ EfficientNet-B7 RandAug. Tensorflow compatible variant """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -821,8 +867,19 @@ def tf_efficientnet_b7(pretrained=False, **kwargs):
     return model
 
 
+def tf_efficientnet_b8(pretrained=False, **kwargs):
+    """ EfficientNet-B8 RandAug. Tensorflow compatible variant """
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(
+        'tf_efficientnet_b8', channel_multiplier=2.2, depth_multiplier=3.6, pretrained=pretrained, **kwargs)
+    return model
+
+
 def tf_efficientnet_b0_ap(pretrained=False, **kwargs):
-    """ EfficientNet-B0 AdvProp. Tensorflow compatible variant  """
+    """ EfficientNet-B0 AdvProp. Tensorflow compatible variant
+    Paper: Adversarial Examples Improve Image Recognition (https://arxiv.org/abs/1911.09665)
+    """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -831,7 +888,9 @@ def tf_efficientnet_b0_ap(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b1_ap(pretrained=False, **kwargs):
-    """ EfficientNet-B1 AdvProp. Tensorflow compatible variant  """
+    """ EfficientNet-B1 AdvProp. Tensorflow compatible variant
+    Paper: Adversarial Examples Improve Image Recognition (https://arxiv.org/abs/1911.09665)
+    """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -840,7 +899,9 @@ def tf_efficientnet_b1_ap(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b2_ap(pretrained=False, **kwargs):
-    """ EfficientNet-B2 AdvProp. Tensorflow compatible variant  """
+    """ EfficientNet-B2 AdvProp. Tensorflow compatible variant
+    Paper: Adversarial Examples Improve Image Recognition (https://arxiv.org/abs/1911.09665)
+    """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -849,7 +910,9 @@ def tf_efficientnet_b2_ap(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b3_ap(pretrained=False, num_classes=1000, in_chans=3, **kwargs):
-    """ EfficientNet-B3 AdvProp. Tensorflow compatible variant """
+    """ EfficientNet-B3 AdvProp. Tensorflow compatible variant
+    Paper: Adversarial Examples Improve Image Recognition (https://arxiv.org/abs/1911.09665)
+    """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -858,7 +921,9 @@ def tf_efficientnet_b3_ap(pretrained=False, num_classes=1000, in_chans=3, **kwar
 
 
 def tf_efficientnet_b4_ap(pretrained=False, **kwargs):
-    """ EfficientNet-B4 AdvProp. Tensorflow compatible variant """
+    """ EfficientNet-B4 AdvProp. Tensorflow compatible variant
+    Paper: Adversarial Examples Improve Image Recognition (https://arxiv.org/abs/1911.09665)
+    """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -867,7 +932,9 @@ def tf_efficientnet_b4_ap(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b5_ap(pretrained=False, **kwargs):
-    """ EfficientNet-B5 AdvProp. Tensorflow compatible variant """
+    """ EfficientNet-B5 AdvProp. Tensorflow compatible variant
+    Paper: Adversarial Examples Improve Image Recognition (https://arxiv.org/abs/1911.09665)
+    """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
@@ -876,7 +943,9 @@ def tf_efficientnet_b5_ap(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b6_ap(pretrained=False, **kwargs):
-    """ EfficientNet-B6 AdvProp. Tensorflow compatible variant """
+    """ EfficientNet-B6 AdvProp. Tensorflow compatible variant
+    Paper: Adversarial Examples Improve Image Recognition (https://arxiv.org/abs/1911.09665)
+    """
     # NOTE for train, drop_rate should be 0.5
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
@@ -886,7 +955,9 @@ def tf_efficientnet_b6_ap(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b7_ap(pretrained=False, **kwargs):
-    """ EfficientNet-B7 AdvProp. Tensorflow compatible variant """
+    """ EfficientNet-B7 AdvProp. Tensorflow compatible variant
+    Paper: Adversarial Examples Improve Image Recognition (https://arxiv.org/abs/1911.09665)
+    """
     # NOTE for train, drop_rate should be 0.5
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
@@ -896,12 +967,128 @@ def tf_efficientnet_b7_ap(pretrained=False, **kwargs):
 
 
 def tf_efficientnet_b8_ap(pretrained=False, **kwargs):
-    """ EfficientNet-B8 AdvProp. Tensorflow compatible variant """
+    """ EfficientNet-B8 AdvProp. Tensorflow compatible variant
+    Paper: Adversarial Examples Improve Image Recognition (https://arxiv.org/abs/1911.09665)
+    """
     # NOTE for train, drop_rate should be 0.5
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
     model = _gen_efficientnet(
         'tf_efficientnet_b8_ap', channel_multiplier=2.2, depth_multiplier=3.6, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_b0_ns(pretrained=False, **kwargs):
+    """ EfficientNet-B0 NoisyStudent. Tensorflow compatible variant
+    Paper: Self-training with Noisy Student improves ImageNet classification (https://arxiv.org/abs/1911.04252)
+    """
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(
+        'tf_efficientnet_b0_ns', channel_multiplier=1.0, depth_multiplier=1.0, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_b1_ns(pretrained=False, **kwargs):
+    """ EfficientNet-B1 NoisyStudent. Tensorflow compatible variant
+    Paper: Self-training with Noisy Student improves ImageNet classification (https://arxiv.org/abs/1911.04252)
+    """
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(
+        'tf_efficientnet_b1_ns', channel_multiplier=1.0, depth_multiplier=1.1, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_b2_ns(pretrained=False, **kwargs):
+    """ EfficientNet-B2 NoisyStudent. Tensorflow compatible variant
+    Paper: Self-training with Noisy Student improves ImageNet classification (https://arxiv.org/abs/1911.04252)
+    """
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(
+        'tf_efficientnet_b2_ns', channel_multiplier=1.1, depth_multiplier=1.2, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_b3_ns(pretrained=False, **kwargs):
+    """ EfficientNet-B3 NoisyStudent. Tensorflow compatible variant
+    Paper: Self-training with Noisy Student improves ImageNet classification (https://arxiv.org/abs/1911.04252)
+    """
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(
+        'tf_efficientnet_b3_ns', channel_multiplier=1.2, depth_multiplier=1.4, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_b4_ns(pretrained=False, **kwargs):
+    """ EfficientNet-B4 NoisyStudent. Tensorflow compatible variant
+    Paper: Self-training with Noisy Student improves ImageNet classification (https://arxiv.org/abs/1911.04252)
+    """
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(
+        'tf_efficientnet_b4_ns', channel_multiplier=1.4, depth_multiplier=1.8, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_b5_ns(pretrained=False, **kwargs):
+    """ EfficientNet-B5 NoisyStudent. Tensorflow compatible variant
+    Paper: Self-training with Noisy Student improves ImageNet classification (https://arxiv.org/abs/1911.04252)
+    """
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(
+        'tf_efficientnet_b5_ns', channel_multiplier=1.6, depth_multiplier=2.2, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_b6_ns(pretrained=False, **kwargs):
+    """ EfficientNet-B6 NoisyStudent. Tensorflow compatible variant
+    Paper: Self-training with Noisy Student improves ImageNet classification (https://arxiv.org/abs/1911.04252)
+    """
+    # NOTE for train, drop_rate should be 0.5
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(
+        'tf_efficientnet_b6_ns', channel_multiplier=1.8, depth_multiplier=2.6, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_b7_ns(pretrained=False, **kwargs):
+    """ EfficientNet-B7 NoisyStudent. Tensorflow compatible variant
+    Paper: Self-training with Noisy Student improves ImageNet classification (https://arxiv.org/abs/1911.04252)
+    """
+    # NOTE for train, drop_rate should be 0.5
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(
+        'tf_efficientnet_b7_ns', channel_multiplier=2.0, depth_multiplier=3.1, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_l2_ns_475(pretrained=False, **kwargs):
+    """ EfficientNet-L2 NoisyStudent @ 475x475. Tensorflow compatible variant
+    Paper: Self-training with Noisy Student improves ImageNet classification (https://arxiv.org/abs/1911.04252)
+    """
+    # NOTE for train, drop_rate should be 0.5
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(
+        'tf_efficientnet_l2_ns_475', channel_multiplier=4.3, depth_multiplier=5.3, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_l2_ns(pretrained=False, **kwargs):
+    """ EfficientNet-L2 NoisyStudent. Tensorflow compatible variant
+    Paper: Self-training with Noisy Student improves ImageNet classification (https://arxiv.org/abs/1911.04252)
+    """
+    # NOTE for train, drop_rate should be 0.5
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet(
+        'tf_efficientnet_l2_ns', channel_multiplier=4.3, depth_multiplier=5.3, pretrained=pretrained, **kwargs)
     return model
 
 
@@ -939,7 +1126,6 @@ def tf_efficientnet_cc_b0_4e(pretrained=False, **kwargs):
     model = _gen_efficientnet_condconv(
         'tf_efficientnet_cc_b0_4e', channel_multiplier=1.0, depth_multiplier=1.0, pretrained=pretrained, **kwargs)
     return model
-
 
 
 def tf_efficientnet_cc_b0_8e(pretrained=False, **kwargs):

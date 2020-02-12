@@ -6,6 +6,11 @@ All models are implemented by GenEfficientNet or MobileNetV3 classes, with strin
 
 ## What's New
 
+### Feb 12, 2020
+ * Add EfficientNet-L2 and B0-B7 NoisyStudent weights ported from [Tensorflow TPU](https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet)
+ * Port new EfficientNet-B8 (RandAugment) weights from TF TPU, these are different than the B8 AdvProp, different input normalization.
+ * Add RandAugment PyTorch trained EfficientNet-ES (EdgeTPU-Small) weights with 78.1 top-1. Trained by [Andrew Lavin](https://github.com/andravin)
+
 ### Jan 22, 2020
  * Update weights for EfficientNet B0, B2, B3 and MixNet-XL with latest RandAugment trained weights. Trained with (https://github.com/rwightman/pytorch-image-models)
  * Fix torchscript compatibility for PyTorch 1.4, add torchscript support for MixedConv2d using ModuleDict
@@ -39,15 +44,16 @@ All models are implemented by GenEfficientNet or MobileNetV3 classes, with strin
 ## Models
 
 Implemented models include:
+  * EfficientNet NoisyStudent (B0-B7, L2) (https://arxiv.org/abs/1911.04252)
   * EfficientNet AdvProp (B0-B8) (https://arxiv.org/abs/1911.09665)
-  * EfficientNet (B0-B7) (https://arxiv.org/abs/1905.11946) -- validated, compat with TF weights
-  * EfficientNet-EdgeTPU (S, M, L) (https://ai.googleblog.com/2019/08/efficientnet-edgetpu-creating.html) --validated w/ TF weights
+  * EfficientNet (B0-B8) (https://arxiv.org/abs/1905.11946)
+  * EfficientNet-EdgeTPU (S, M, L) (https://ai.googleblog.com/2019/08/efficientnet-edgetpu-creating.html)
   * EfficientNet-CondConv (https://arxiv.org/abs/1904.04971)
-  * MixNet (https://arxiv.org/abs/1907.09595) -- validated, compat with TF weights
+  * MixNet (https://arxiv.org/abs/1907.09595)
   * MNASNet B1, A1 (Squeeze-Excite), and Small (https://arxiv.org/abs/1807.11626)
-  * MobileNet-V3 (https://arxiv.org/abs/1905.02244) -- native PyTorch model trained better than paper spec, ported TF weights
+  * MobileNet-V3 (https://arxiv.org/abs/1905.02244)
   * FBNet-C (https://arxiv.org/abs/1812.03443)
-  * Single-Path NAS (https://arxiv.org/abs/1904.02877) -- pixel1 variant
+  * Single-Path NAS (https://arxiv.org/abs/1904.02877)
     
 I originally implemented and trained some these models with code [here](https://github.com/rwightman/pytorch-image-models), this repository contains just the GenEfficientNet models, validation, and associated ONNX/Caffe2 export code. 
 
@@ -66,6 +72,7 @@ I've managed to train several of the models to accuracies close to or above the 
 | efficientnet_b2 | 80.288 (19.712) | 95.166 (4.834) | 9.1 | 1003 | bicubic | 260 | 0.890 |
 | mixnet_l | 78.976 (21.024 | 94.184 (5.816) | 7.33 | TBD | bicubic | 224 | 0.875 |
 | efficientnet_b1 | 78.692 (21.308) | 94.086 (5.914) | 7.8 | 694 | bicubic | 240 | 0.882 |
+| efficientnet_es | 78.066 (21.934) | 93.926 (6.074) | 5.44 | TBD | bicubic | 224 | 0.875 |
 | efficientnet_b0 | 77.698 (22.302) | 93.532 (6.468) | 5.3 | 390 | bicubic | 224 | 0.875 |
 | mixnet_m | 77.256 (22.744) | 93.418 (6.582) | 5.01 | 353 | bicubic | 224 | 0.875 |
 | mixnet_s | 75.988 (24.012) | 92.794 (7.206) | 4.13 | TBD | bicubic | 224 | 0.875 |
@@ -73,7 +80,7 @@ I've managed to train several of the models to accuracies close to or above the 
 | mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.9 | 312 | bicubic | 224 | 0.875 |
 | fbnetc_100 | 75.124 (24.876) | 92.386 (7.614) | 5.6 | 385 | bilinear | 224 | 0.875 |
 | mnasnet_b1 | 74.658 (25.342) | 92.114 (7.886) | 4.4 | 315 | bicubic | 224 | 0.875 |
-| spnasnet_100 | 74.084 (25.916)  | 91.818 (8.182) | 4.4 | TBV | bilinear | 224 | 0.875 |
+| spnasnet_100 | 74.084 (25.916)  | 91.818 (8.182) | 4.4 | TBD | bilinear | 224 | 0.875 |
 
 
 More pretrained models to come...
@@ -98,8 +105,22 @@ To run validation for a model with Inception preprocessing, ie EfficientNet-B8 A
 
 |Model | Prec@1 (Err) | Prec@5 (Err) | Param # | Image Scaling  | Image Size | Crop | 
 |---|---|---|---|---|---|---|
+| tf_efficientnet_l2_ns *tfp | 88.352 (11.648) | 98.652 (1.348) | 480 | bicubic | 800 | N/A |
+| tf_efficientnet_l2_ns      | TBD | TBD | 480 | bicubic | 800 | 0.961 |
+| tf_efficientnet_l2_ns_475 *tfp | 88.172 (11.828) | 98.566 (1.434) | 480 | bicubic | 475 | N/A |
+| tf_efficientnet_l2_ns_475      | 88.234 (11.766) | 98.546 (1.454) | 480 | bicubic | 475 | 0.936 |
+| tf_efficientnet_b7_ns *tfp | 86.844 (13.156) | 98.084 (1.916) | 66.35 | bicubic | 600 | N/A |
+| tf_efficientnet_b7_ns      | 86.840 (13.160) | 98.094 (1.906) | 66.35 | bicubic | 600 | N/A |
+| tf_efficientnet_b6_ns      | 86.452 (13.548) | 97.882 (2.118) | 43.04 | bicubic | 528 | N/A |
+| tf_efficientnet_b6_ns *tfp | 86.444 (13.556) | 97.880 (2.120) | 43.04 | bicubic | 528 | N/A |
+| tf_efficientnet_b5_ns *tfp | 86.064 (13.936) | 97.746 (2.254) | 30.39 | bicubic | 456 | N/A |
+| tf_efficientnet_b5_ns      | 86.088 (13.912) | 97.752 (2.248) | 30.39 | bicubic | 456 | N/A |
 | tf_efficientnet_b8_ap *tfp | 85.436 (14.564) | 97.272 (2.728) | 87.4 | bicubic | 672 | N/A |
+| tf_efficientnet_b8 *tfp    | 85.384 (14.616) | 97.394 (2.606) | 87.4 | bicubic | 672 | N/A |
+| tf_efficientnet_b8         | 85.370 (14.630) | 97.390 (2.610) | 87.4 | bicubic | 672 | 0.954 |
 | tf_efficientnet_b8_ap      | 85.368 (14.632) | 97.294 (2.706) | 87.4 | bicubic | 672 | 0.954 |
+| tf_efficientnet_b4_ns *tfp | 85.298 (14.702) | 97.504 (2.496) | 19.34 | bicubic | 380 | N/A |
+| tf_efficientnet_b4_ns      | 85.162 (14.838) | 97.470 (2.530) | 19.34 | bicubic | 380 | 0.922 |
 | tf_efficientnet_b7_ap *tfp | 85.154 (14.846) | 97.244 (2.756) | 66.35 | bicubic | 600 | N/A |
 | tf_efficientnet_b7_ap      | 85.118 (14.882) | 97.252 (2.748) | 66.35 | bicubic | 600 | 0.949 |
 | tf_efficientnet_b7 *tfp | 84.940 (15.060) | 97.214 (2.786) | 66.35 | bicubic | 600 | N/A |
@@ -110,32 +131,40 @@ To run validation for a model with Inception preprocessing, ie EfficientNet-B8 A
 | tf_efficientnet_b5_ap      | 84.254 (15.746) | 96.976 (3.024) | 30.39 | bicubic | 456 | 0.934 |
 | tf_efficientnet_b6 *tfp  | 84.140 (15.860) | 96.852 (3.148) | 43.04 | bicubic | 528 | N/A |
 | tf_efficientnet_b6       | 84.110 (15.890) | 96.886 (3.114) | 43.04 | bicubic | 528 | 0.942 |
+| tf_efficientnet_b3_ns *tfp | 84.054 (15.946) | 96.918 (3.082) | 12.23 | bicubic | 300 | N/A |
+| tf_efficientnet_b3_ns      | 84.048 (15.952) | 96.910 (3.090) | 12.23 | bicubic | 300 | .904 |
 | tf_efficientnet_b5 *tfp  | 83.822 (16.178) | 96.756 (3.244) | 30.39 | bicubic | 456 | N/A |
 | tf_efficientnet_b5       | 83.812 (16.188) | 96.748 (3.252) | 30.39 | bicubic | 456 | 0.934 |
 | tf_efficientnet_b4_ap *tfp | 83.278 (16.722) | 96.376 (3.624) | 19.34 | bicubic | 380 | N/A |
 | tf_efficientnet_b4_ap      | 83.248 (16.752) | 96.388 (3.612) | 19.34 | bicubic | 380 | 0.922 |
 | tf_efficientnet_b4       | 83.022 (16.978) | 96.300 (3.700) | 19.34 | bicubic | 380 | 0.922 |
 | tf_efficientnet_b4 *tfp  | 82.948 (17.052) | 96.308 (3.692) | 19.34 | bicubic | 380 | N/A |
+| tf_efficientnet_b2_ns *tfp | 82.436 (17.564) | 96.268 (3.732) | 9.11 | bicubic | 260 | N/A |
+| tf_efficientnet_b2_ns      | 82.380 (17.620) | 96.248 (3.752) | 9.11 | bicubic | 260 | 0.89 |
 | tf_efficientnet_b3_ap *tfp | 81.882 (18.118) | 95.662 (4.338) | 12.23 | bicubic | 300 | N/A |
-| tf_efficientnet_b3_ap      | 81.828 (18.172) | 95.624 (4.376) | 12.23 | bicubic | 300 | 0.903 |
-| tf_efficientnet_b3       | 81.636 (18.364) | 95.718 (4.282) | 12.23 | bicubic | 300 | 0.903 |
+| tf_efficientnet_b3_ap      | 81.828 (18.172) | 95.624 (4.376) | 12.23 | bicubic | 300 | 0.904 |
+| tf_efficientnet_b3       | 81.636 (18.364) | 95.718 (4.282) | 12.23 | bicubic | 300 | 0.904 |
 | tf_efficientnet_b3 *tfp  | 81.576 (18.424) | 95.662 (4.338) | 12.23 | bicubic | 300 | N/A |
-| tf_efficientnet_el       | 80.534 (19.466) | 95.190 (4.810) | 10.59 | bicubic | 300 | 0.903 |
+| tf_efficientnet_b1_ns *tfp | 81.514 (18.486) | 95.776 (4.224) | 7.79 | bicubic | 240 | N/A |
+| tf_efficientnet_b1_ns      | 81.388 (18.612) | 95.738 (4.262) | 7.79 | bicubic | 240 | 0.88 |
+| tf_efficientnet_el       | 80.534 (19.466) | 95.190 (4.810) | 10.59 | bicubic | 300 | 0.904 |
 | tf_efficientnet_el *tfp  | 80.476 (19.524) | 95.200 (4.800) | 10.59 | bicubic | 300 | N/A |
 | tf_efficientnet_b2_ap *tfp | 80.420 (19.580) | 95.040 (4.960) | 9.11 | bicubic | 260 | N/A |
 | tf_efficientnet_b2_ap    | 80.306 (19.694) | 95.028 (4.972) | 9.11 | bicubic | 260 | 0.890 |
 | tf_efficientnet_b2 *tfp  | 80.188 (19.812) | 94.974 (5.026) | 9.11 | bicubic | 260 | N/A |
 | tf_efficientnet_b2       | 80.086 (19.914) | 94.908 (5.092) | 9.11 | bicubic | 260 | 0.890 |
-| tf_efficientnet_b1_ap *tfp | 79.532 (20.468) | 94.378 (5.622) | 7.79 | bicubic | 240  N/A |
+| tf_efficientnet_b1_ap *tfp | 79.532 (20.468) | 94.378 (5.622) | 7.79 | bicubic | 240 | N/A |
 | tf_efficientnet_cc_b1_8e *tfp | 79.464 (20.536)| 94.492 (5.508) | 39.7 | bicubic | 240 | 0.88 |
 | tf_efficientnet_cc_b1_8e | 79.298 (20.702) | 94.364 (5.636) | 39.7 | bicubic | 240 | 0.88 |
 | tf_efficientnet_b1_ap    | 79.278 (20.722) | 94.308 (5.692) | 7.79 | bicubic | 240 | 0.88 |
-| tf_efficientnet_b1 *tfp  | 79.172 (20.828) | 94.450 (5.550) | 7.79 | bicubic | 240  N/A |
+| tf_efficientnet_b1 *tfp  | 79.172 (20.828) | 94.450 (5.550) | 7.79 | bicubic | 240 | N/A |
 | tf_efficientnet_em *tfp  | 78.958 (21.042) | 94.458 (5.542) | 6.90 | bicubic | 240 | N/A |
+| tf_efficientnet_b0_ns *tfp | 78.806 (21.194) | 94.496 (5.504) | 5.29 | bicubic | 224 | N/A |
 | tf_mixnet_l *tfp         | 78.846 (21.154) | 94.212 (5.788) | 7.33 | bilinear | 224 | N/A |
 | tf_efficientnet_b1       | 78.826 (21.174) | 94.198 (5.802) | 7.79 | bicubic | 240 | 0.88 |
 | tf_mixnet_l              | 78.770 (21.230) | 94.004 (5.996) | 7.33 | bicubic | 224 | 0.875 |
 | tf_efficientnet_em       | 78.742 (21.258) | 94.332 (5.668) | 6.90 | bicubic | 240 | 0.875 |
+| tf_efficientnet_b0_ns    | 78.658 (21.342) | 94.376 (5.624) | 5.29 | bicubic | 224 | 0.875 |
 | tf_efficientnet_cc_b0_8e *tfp | 78.314 (21.686) | 93.790 (6.210) | 24.0 | bicubic | 224 | 0.875 |
 | tf_efficientnet_cc_b0_8e | 77.908 (22.092) | 93.656 (6.344) | 24.0 | bicubic | 224 | 0.875 |
 | tf_efficientnet_cc_b0_4e *tfp | 77.746 (22.254) | 93.552 (6.448) | 13.3 | bicubic | 224 | 0.875 |
