@@ -65,7 +65,7 @@ I've managed to train several of the models to accuracies close to or above the 
 |Model | Prec@1 (Err) | Prec@5 (Err) | Param#(M) | MAdds(M) | Image Scaling | Resolution | Crop |
 |---|---|---|---|---|---|---|---|
 | efficientnet_b3 | 81.866 (18.134) | 95.836 (4.164) | 12.23 | TBD | bicubic | 320 | 1.0 |
-| efficientnet_b3 | 81.508 (18.492) | 95.672 (4.328) | 12.23 | TBD | bicubic | 300 | 0.903 |
+| efficientnet_b3 | 81.508 (18.492) | 95.672 (4.328) | 12.23 | TBD | bicubic | 300 | 0.904 |
 | mixnet_xl | 81.074 (18.926) | 95.282 (4.718) | 11.90 | TBD | bicubic | 256 | 1.0 |
 | efficientnet_b2 | 80.612 (19.388) | 95.318 (4.682) | 9.1 | TBD | bicubic | 288 | 1.0 |
 | mixnet_xl | 80.476 (19.524) | 94.936 (5.064) | 11.90 | TBD | bicubic | 224 | 0.875 |
@@ -107,8 +107,8 @@ To run validation for a model with Inception preprocessing, ie EfficientNet-B8 A
 |---|---|---|---|---|---|---|
 | tf_efficientnet_l2_ns *tfp | 88.352 (11.648) | 98.652 (1.348) | 480 | bicubic | 800 | N/A |
 | tf_efficientnet_l2_ns      | TBD | TBD | 480 | bicubic | 800 | 0.961 |
-| tf_efficientnet_l2_ns_475 *tfp | 88.172 (11.828) | 98.566 (1.434) | 480 | bicubic | 475 | N/A |
 | tf_efficientnet_l2_ns_475      | 88.234 (11.766) | 98.546 (1.454) | 480 | bicubic | 475 | 0.936 |
+| tf_efficientnet_l2_ns_475 *tfp | 88.172 (11.828) | 98.566 (1.434) | 480 | bicubic | 475 | N/A |
 | tf_efficientnet_b7_ns *tfp | 86.844 (13.156) | 98.084 (1.916) | 66.35 | bicubic | 600 | N/A |
 | tf_efficientnet_b7_ns      | 86.840 (13.160) | 98.094 (1.906) | 66.35 | bicubic | 600 | N/A |
 | tf_efficientnet_b6_ns      | 86.452 (13.548) | 97.882 (2.118) | 43.04 | bicubic | 528 | N/A |
