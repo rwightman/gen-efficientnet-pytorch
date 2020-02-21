@@ -822,7 +822,7 @@ def tf_efficientnet_b2(pretrained=False, **kwargs):
     return model
 
 
-def tf_efficientnet_b3(pretrained=False, num_classes=1000, in_chans=3, **kwargs):
+def tf_efficientnet_b3(pretrained=False, **kwargs):
     """ EfficientNet-B3 AutoAug. Tensorflow compatible variant """
     kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
     kwargs['pad_type'] = 'same'
@@ -909,7 +909,7 @@ def tf_efficientnet_b2_ap(pretrained=False, **kwargs):
     return model
 
 
-def tf_efficientnet_b3_ap(pretrained=False, num_classes=1000, in_chans=3, **kwargs):
+def tf_efficientnet_b3_ap(pretrained=False, **kwargs):
     """ EfficientNet-B3 AdvProp. Tensorflow compatible variant
     Paper: Adversarial Examples Improve Image Recognition (https://arxiv.org/abs/1911.09665)
     """
