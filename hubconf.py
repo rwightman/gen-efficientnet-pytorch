@@ -12,6 +12,7 @@ from geffnet import mixnet_m
 from geffnet import mixnet_l
 from geffnet import mixnet_xl
 
+from geffnet import mobilenetv3_large_100
 from geffnet import mobilenetv3_rw
 from geffnet import mnasnet_a1
 from geffnet import mnasnet_b1
@@ -56,6 +57,12 @@ from geffnet import tf_efficientnet_el
 from geffnet import tf_efficientnet_cc_b0_4e
 from geffnet import tf_efficientnet_cc_b0_8e
 from geffnet import tf_efficientnet_cc_b1_8e
+
+from geffnet import tf_efficientnet_lite0
+from geffnet import tf_efficientnet_lite1
+from geffnet import tf_efficientnet_lite2
+from geffnet import tf_efficientnet_lite3
+from geffnet import tf_efficientnet_lite4
 
 from geffnet import tf_mixnet_s
 from geffnet import tf_mixnet_m

@@ -8,6 +8,8 @@ A generic MobileNet class with building blocks to support a variety of models:
   - Adversarial Examples Improve Image Recognition - https://arxiv.org/abs/1911.09665
   - Self-training with Noisy Student improves ImageNet classification - https://arxiv.org/abs/1911.04252
 
+* EfficientNet-Lite
+
 * MixNet (Small, Medium, and Large)
   - MixConv: Mixed Depthwise Convolutional Kernels - https://arxiv.org/abs/1907.09595
 
@@ -36,6 +38,7 @@ __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnas
            'efficientnet_b4', 'efficientnet_b5', 'efficientnet_b6', 'efficientnet_b7', 'efficientnet_b8',
            'efficientnet_l2', 'efficientnet_es', 'efficientnet_em', 'efficientnet_el',
            'efficientnet_cc_b0_4e', 'efficientnet_cc_b0_8e', 'efficientnet_cc_b1_8e',
+           'efficientnet_lite0', 'efficientnet_lite1', 'efficientnet_lite2', 'efficientnet_lite3', 'efficientnet_lite4',
            'tf_efficientnet_b0', 'tf_efficientnet_b1', 'tf_efficientnet_b2', 'tf_efficientnet_b3',
            'tf_efficientnet_b4', 'tf_efficientnet_b5', 'tf_efficientnet_b6', 'tf_efficientnet_b7', 'tf_efficientnet_b8',
            'tf_efficientnet_b0_ap', 'tf_efficientnet_b1_ap', 'tf_efficientnet_b2_ap', 'tf_efficientnet_b3_ap',
@@ -45,6 +48,8 @@ __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnas
            'tf_efficientnet_b7_ns', 'tf_efficientnet_l2_ns', 'tf_efficientnet_l2_ns_475',
            'tf_efficientnet_es', 'tf_efficientnet_em', 'tf_efficientnet_el',
            'tf_efficientnet_cc_b0_4e', 'tf_efficientnet_cc_b0_8e', 'tf_efficientnet_cc_b1_8e',
+           'tf_efficientnet_lite0', 'tf_efficientnet_lite1', 'tf_efficientnet_lite2', 'tf_efficientnet_lite3',
+           'tf_efficientnet_lite4',
            'mixnet_s', 'mixnet_m', 'mixnet_l', 'mixnet_xl', 'tf_mixnet_s', 'tf_mixnet_m', 'tf_mixnet_l']
 
 
@@ -54,12 +59,14 @@ model_urls = {
     'mnasnet_100':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mnasnet_b1-74cb7081.pth',
     'mnasnet_140': None,
+    'mnasnet_small': None,
+
     'semnasnet_050': None,
     'semnasnet_075': None,
     'semnasnet_100':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mnasnet_a1-d9418771.pth',
     'semnasnet_140': None,
-    'mnasnet_small': None,
+
     'fbnetc_100':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/fbnetc_100-c345b898.pth',
     'spnasnet_100':
@@ -88,6 +95,12 @@ model_urls = {
     'efficientnet_cc_b0_4e': None,
     'efficientnet_cc_b0_8e': None,
     'efficientnet_cc_b1_8e': None,
+
+    'efficientnet_lite0': None,
+    'efficientnet_lite1': None,
+    'efficientnet_lite2': None,
+    'efficientnet_lite3': None,
+    'efficientnet_lite4': None,
 
     'tf_efficientnet_b0':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_b0_aa-827b6e33.pth',
@@ -162,6 +175,17 @@ model_urls = {
     'tf_efficientnet_cc_b1_8e':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_cc_b1_8e-f7c79ae1.pth',
 
+    'tf_efficientnet_lite0':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_lite0-0aa007d2.pth',
+    'tf_efficientnet_lite1':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_lite1-bde8b488.pth',
+    'tf_efficientnet_lite2':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_lite2-dcccb7df.pth',
+    'tf_efficientnet_lite3':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_lite3-b733e338.pth',
+    'tf_efficientnet_lite4':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/tf_efficientnet_lite4-741542c3.pth',
+
     'mixnet_s': 'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mixnet_s-a907afbc.pth',
     'mixnet_m': 'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mixnet_m-4647fc68.pth',
     'mixnet_l': 'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mixnet_l-5a9a2ed8.pth',
@@ -187,7 +211,7 @@ class GenEfficientNet(nn.Module):
       * Single-Path NAS Pixel1
     """
 
-    def __init__(self, block_args, num_classes=1000, in_chans=3, stem_size=32, num_features=1280,
+    def __init__(self, block_args, num_classes=1000, in_chans=3, num_features=1280, stem_size=32, fix_stem=False,
                  channel_multiplier=1.0, channel_divisor=8, channel_min=None,
                  pad_type='', act_layer=nn.ReLU, drop_rate=0., drop_connect_rate=0.,
                  se_kwargs=None, norm_layer=nn.BatchNorm2d, norm_kwargs=None,
@@ -195,7 +219,8 @@ class GenEfficientNet(nn.Module):
         super(GenEfficientNet, self).__init__()
         self.drop_rate = drop_rate
 
-        stem_size = round_channels(stem_size, channel_multiplier, channel_divisor, channel_min)
+        if not fix_stem:
+            stem_size = round_channels(stem_size, channel_multiplier, channel_divisor, channel_min)
         self.conv_stem = select_conv2d(in_chans, stem_size, 3, stride=2, padding=pad_type)
         self.bn1 = norm_layer(stem_size, **norm_kwargs)
         self.act1 = act_layer(inplace=True)
@@ -521,6 +546,47 @@ def _gen_efficientnet_condconv(
     return model
 
 
+def _gen_efficientnet_lite(variant, channel_multiplier=1.0, depth_multiplier=1.0, pretrained=False, **kwargs):
+    """Creates an EfficientNet-Lite model.
+
+    Ref impl: https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet/lite
+    Paper: https://arxiv.org/abs/1905.11946
+
+    EfficientNet params
+    name: (channel_multiplier, depth_multiplier, resolution, dropout_rate)
+      'efficientnet-lite0': (1.0, 1.0, 224, 0.2),
+      'efficientnet-lite1': (1.0, 1.1, 240, 0.2),
+      'efficientnet-lite2': (1.1, 1.2, 260, 0.3),
+      'efficientnet-lite3': (1.2, 1.4, 280, 0.3),
+      'efficientnet-lite4': (1.4, 1.8, 300, 0.3),
+
+    Args:
+      channel_multiplier: multiplier to number of channels per layer
+      depth_multiplier: multiplier to number of repeats per stage
+    """
+    arch_def = [
+        ['ds_r1_k3_s1_e1_c16'],
+        ['ir_r2_k3_s2_e6_c24'],
+        ['ir_r2_k5_s2_e6_c40'],
+        ['ir_r3_k3_s2_e6_c80'],
+        ['ir_r3_k5_s1_e6_c112'],
+        ['ir_r4_k5_s2_e6_c192'],
+        ['ir_r1_k3_s1_e6_c320'],
+    ]
+    model_kwargs = dict(
+        block_args=decode_arch_def(arch_def, depth_multiplier, fix_first_last=True),
+        num_features=1280,
+        stem_size=32,
+        fix_stem=True,
+        channel_multiplier=channel_multiplier,
+        act_layer=nn.ReLU6,
+        norm_kwargs=resolve_bn_args(kwargs),
+        **kwargs,
+    )
+    model = _create_model(model_kwargs, variant, pretrained)
+    return model
+
+
 def _gen_mixnet_s(variant, channel_multiplier=1.0, pretrained=False, **kwargs):
     """Creates a MixNet Small model.
 
@@ -792,6 +858,41 @@ def efficientnet_cc_b1_8e(pretrained=False, **kwargs):
     model = _gen_efficientnet_condconv(
         'efficientnet_cc_b1_8e', channel_multiplier=1.0, depth_multiplier=1.1, experts_multiplier=2,
         pretrained=pretrained, **kwargs)
+    return model
+
+
+def efficientnet_lite0(pretrained=False, **kwargs):
+    """ EfficientNet-Lite0 """
+    model = _gen_efficientnet_lite(
+        'efficientnet_lite0', channel_multiplier=1.0, depth_multiplier=1.0, pretrained=pretrained, **kwargs)
+    return model
+
+
+def efficientnet_lite1(pretrained=False, **kwargs):
+    """ EfficientNet-Lite1 """
+    model = _gen_efficientnet_lite(
+        'efficientnet_lite1', channel_multiplier=1.0, depth_multiplier=1.1, pretrained=pretrained, **kwargs)
+    return model
+
+
+def efficientnet_lite2(pretrained=False, **kwargs):
+    """ EfficientNet-Lite2 """
+    model = _gen_efficientnet_lite(
+        'efficientnet_lite2', channel_multiplier=1.1, depth_multiplier=1.2, pretrained=pretrained, **kwargs)
+    return model
+
+
+def efficientnet_lite3(pretrained=False, **kwargs):
+    """ EfficientNet-Lite3 """
+    model = _gen_efficientnet_lite(
+        'efficientnet_lite3', channel_multiplier=1.2, depth_multiplier=1.4, pretrained=pretrained, **kwargs)
+    return model
+
+
+def efficientnet_lite4(pretrained=False, **kwargs):
+    """ EfficientNet-Lite4 """
+    model = _gen_efficientnet_lite(
+        'efficientnet_lite4', channel_multiplier=1.4, depth_multiplier=1.8, pretrained=pretrained, **kwargs)
     return model
 
 
@@ -1145,6 +1246,51 @@ def tf_efficientnet_cc_b1_8e(pretrained=False, **kwargs):
     model = _gen_efficientnet_condconv(
         'tf_efficientnet_cc_b1_8e', channel_multiplier=1.0, depth_multiplier=1.1, experts_multiplier=2,
         pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_lite0(pretrained=False, **kwargs):
+    """ EfficientNet-Lite0. Tensorflow compatible variant  """
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet_lite(
+        'tf_efficientnet_lite0', channel_multiplier=1.0, depth_multiplier=1.0, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_lite1(pretrained=False, **kwargs):
+    """ EfficientNet-Lite1. Tensorflow compatible variant  """
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet_lite(
+        'tf_efficientnet_lite1', channel_multiplier=1.0, depth_multiplier=1.1, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_lite2(pretrained=False, **kwargs):
+    """ EfficientNet-Lite2. Tensorflow compatible variant  """
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet_lite(
+        'tf_efficientnet_lite2', channel_multiplier=1.1, depth_multiplier=1.2, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_lite3(pretrained=False, **kwargs):
+    """ EfficientNet-Lite3. Tensorflow compatible variant """
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet_lite(
+        'tf_efficientnet_lite3', channel_multiplier=1.2, depth_multiplier=1.4, pretrained=pretrained, **kwargs)
+    return model
+
+
+def tf_efficientnet_lite4(pretrained=False, **kwargs):
+    """ EfficientNet-Lite4. Tensorflow compatible variant """
+    kwargs['bn_eps'] = BN_EPS_TF_DEFAULT
+    kwargs['pad_type'] = 'same'
+    model = _gen_efficientnet_lite(
+        'tf_efficientnet_lite4', channel_multiplier=1.4, depth_multiplier=1.8, pretrained=pretrained, **kwargs)
     return model
 
 

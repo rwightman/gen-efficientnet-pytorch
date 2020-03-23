@@ -21,7 +21,8 @@ model_urls = {
     'mobilenetv3_rw':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mobilenetv3_100-35495452.pth',
     'mobilenetv3_large_075': None,
-    'mobilenetv3_large_100': None,
+    'mobilenetv3_large_100':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mobilenetv3_large_100_ra-f55367f5.pth',
     'mobilenetv3_large_minimal_100': None,
     'mobilenetv3_small_075': None,
     'mobilenetv3_small_100': None,

@@ -6,6 +6,11 @@ All models are implemented by GenEfficientNet or MobileNetV3 classes, with strin
 
 ## What's New
 
+### March 23, 2020
+ * Add EfficientNet-Lite models w/ weights ported from [Tensorflow TPU](https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet/lite)
+ * Add PyTorch trained MobileNet-V3 Large weights trained from stratch with this code to 75.77% top-1
+ * IMPORTANT CHANGE (if training from scratch) - weight init changed to better match Tensorflow impl, set `fix_group_fanout=False` in `initialize_weight_goog` for old behavior
+
 ### Feb 12, 2020
  * Add EfficientNet-L2 and B0-B7 NoisyStudent weights ported from [Tensorflow TPU](https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet)
  * Port new EfficientNet-B8 (RandAugment) weights from TF TPU, these are different than the B8 AdvProp, different input normalization.
@@ -49,6 +54,7 @@ Implemented models include:
   * EfficientNet (B0-B8) (https://arxiv.org/abs/1905.11946)
   * EfficientNet-EdgeTPU (S, M, L) (https://ai.googleblog.com/2019/08/efficientnet-edgetpu-creating.html)
   * EfficientNet-CondConv (https://arxiv.org/abs/1904.04971)
+  * EfficientNet-Lite (https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet/lite)
   * MixNet (https://arxiv.org/abs/1907.09595)
   * MNASNet B1, A1 (Squeeze-Excite), and Small (https://arxiv.org/abs/1807.11626)
   * MobileNet-V3 (https://arxiv.org/abs/1905.02244)
@@ -76,6 +82,7 @@ I've managed to train several of the models to accuracies close to or above the 
 | efficientnet_b0 | 77.698 (22.302) | 93.532 (6.468) | 5.3 | 390 | bicubic | 224 | 0.875 |
 | mixnet_m | 77.256 (22.744) | 93.418 (6.582) | 5.01 | 353 | bicubic | 224 | 0.875 |
 | mixnet_s | 75.988 (24.012) | 92.794 (7.206) | 4.13 | TBD | bicubic | 224 | 0.875 |
+| mobilenetv3_large_100 | 75.766 (24.234) | 92.542 (7.458) | 5.5M | bicubic | 224 | 0.875 |
 | mobilenetv3_rw | 75.634 (24.366) | 92.708 (7.292) | 5.5 | 219 | bicubic | 224 | 0.875 |
 | mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.9 | 312 | bicubic | 224 | 0.875 |
 | fbnetc_100 | 75.124 (24.876) | 92.386 (7.614) | 5.6 | 385 | bilinear | 224 | 0.875 |
@@ -91,7 +98,7 @@ More pretrained models to come...
 The weights ported from Tensorflow checkpoints for the EfficientNet models do pretty much match accuracy in Tensorflow once a SAME convolution padding equivalent is added, and the same crop factors, image scaling, etc (see table) are used via cmd line args.
 
 **IMPORTANT:** 
-* Tensorflow ported weights for EfficientNet AdvProp (AP), EfficientNet EdgeTPU, EfficientNet-CondConv, and MobileNet-V3 models use Inception style (0.5, 0.5, 0.5) for mean and std.
+* Tensorflow ported weights for EfficientNet AdvProp (AP), EfficientNet EdgeTPU, EfficientNet-CondConv, EfficientNet-Lite, and MobileNet-V3 models use Inception style (0.5, 0.5, 0.5) for mean and std.
 * Enabling the Tensorflow preprocessing pipeline with `--tf-preprocessing` at validation time will improve scores by 0.1-0.5%, very close to original TF impl.
 
 To run validation for tf_efficientnet_b5:
@@ -145,7 +152,9 @@ To run validation for a model with Inception preprocessing, ie EfficientNet-B8 A
 | tf_efficientnet_b3_ap      | 81.828 (18.172) | 95.624 (4.376) | 12.23 | bicubic | 300 | 0.904 |
 | tf_efficientnet_b3       | 81.636 (18.364) | 95.718 (4.282) | 12.23 | bicubic | 300 | 0.904 |
 | tf_efficientnet_b3 *tfp  | 81.576 (18.424) | 95.662 (4.338) | 12.23 | bicubic | 300 | N/A |
+| tf_efficientnet_lite4      | 81.528 (18.472) | 95.668 (4.332) | 13.00  | bilinear | 380 | 0.92 |
 | tf_efficientnet_b1_ns *tfp | 81.514 (18.486) | 95.776 (4.224) | 7.79 | bicubic | 240 | N/A |
+| tf_efficientnet_lite4 *tfp | 81.502 (18.498) | 95.676 (4.324) | 13.00  | bilinear | 380 | N/A |
 | tf_efficientnet_b1_ns      | 81.388 (18.612) | 95.738 (4.262) | 7.79 | bicubic | 240 | 0.88 |
 | tf_efficientnet_el       | 80.534 (19.466) | 95.190 (4.810) | 10.59 | bicubic | 300 | 0.904 |
 | tf_efficientnet_el *tfp  | 80.476 (19.524) | 95.200 (4.800) | 10.59 | bicubic | 300 | N/A |
@@ -153,6 +162,8 @@ To run validation for a model with Inception preprocessing, ie EfficientNet-B8 A
 | tf_efficientnet_b2_ap    | 80.306 (19.694) | 95.028 (4.972) | 9.11 | bicubic | 260 | 0.890 |
 | tf_efficientnet_b2 *tfp  | 80.188 (19.812) | 94.974 (5.026) | 9.11 | bicubic | 260 | N/A |
 | tf_efficientnet_b2       | 80.086 (19.914) | 94.908 (5.092) | 9.11 | bicubic | 260 | 0.890 |
+| tf_efficientnet_lite3       | 79.812 (20.188) | 94.914 (5.086) | 8.20  | bilinear | 300 | 0.904 |
+| tf_efficientnet_lite3 *tfp  | 79.734 (20.266) | 94.838 (5.162) | 8.20  | bilinear | 300 | N/A |
 | tf_efficientnet_b1_ap *tfp | 79.532 (20.468) | 94.378 (5.622) | 7.79 | bicubic | 240 | N/A |
 | tf_efficientnet_cc_b1_8e *tfp | 79.464 (20.536)| 94.492 (5.508) | 39.7 | bicubic | 240 | 0.88 |
 | tf_efficientnet_cc_b1_8e | 79.298 (20.702) | 94.364 (5.636) | 39.7 | bicubic | 240 | 0.88 |
@@ -170,6 +181,8 @@ To run validation for a model with Inception preprocessing, ie EfficientNet-B8 A
 | tf_efficientnet_cc_b0_4e *tfp | 77.746 (22.254) | 93.552 (6.448) | 13.3 | bicubic | 224 | 0.875 |
 | tf_efficientnet_cc_b0_4e | 77.304 (22.696) | 93.332 (6.668) | 13.3 | bicubic | 224 | 0.875 |
 | tf_efficientnet_es *tfp  | 77.616 (22.384) | 93.750 (6.250) | 5.44 | bicubic | 224 | N/A |
+| tf_efficientnet_lite2 *tfp  | 77.544 (22.456) | 93.800 (6.200) | 6.09  | bilinear | 260 | N/A |
+| tf_efficientnet_lite2       | 77.460 (22.540) | 93.746 (6.254) | 6.09  | bicubic | 260 | 0.89 |
 | tf_efficientnet_b0_ap *tfp | 77.514 (22.486) | 93.576 (6.424) | 5.29  | bicubic | 224 | N/A |
 | tf_efficientnet_es       | 77.264 (22.736) | 93.600 (6.400) | 5.44 | bicubic | 224 | N/A |
 | tf_efficientnet_b0 *tfp  | 77.258 (22.742) | 93.478 (6.522) | 5.29  | bicubic | 224 | N/A |
@@ -177,10 +190,14 @@ To run validation for a model with Inception preprocessing, ie EfficientNet-B8 A
 | tf_mixnet_m *tfp         | 77.072 (22.928) | 93.368 (6.632) | 5.01 | bilinear | 224 | N/A |
 | tf_mixnet_m              | 76.950 (23.050) | 93.156 (6.844) | 5.01 | bicubic | 224 | 0.875 |
 | tf_efficientnet_b0       | 76.848 (23.152) | 93.228 (6.772) | 5.29  | bicubic | 224 | 0.875 |
+| tf_efficientnet_lite1 *tfp  | 76.764 (23.236) | 93.326 (6.674) | 5.42  | bilinear | 240 | N/A |
+| tf_efficientnet_lite1       | 76.638 (23.362) | 93.232 (6.768) | 5.42  | bicubic | 240 | 0.882 |
 | tf_mixnet_s *tfp         | 75.800 (24.200) | 92.788 (7.212) | 4.13 | bilinear | 224 | N/A |
 | tf_mobilenetv3_large_100 *tfp | 75.768 (24.232) | 92.710 (7.290) | 5.48 | bilinear | 224 | N/A |
 | tf_mixnet_s              | 75.648 (24.352) | 92.636 (7.364) | 4.13 | bicubic | 224 | 0.875 |
 | tf_mobilenetv3_large_100 | 75.516 (24.484) | 92.600 (7.400) | 5.48 | bilinear | 224 | 0.875 |
+| tf_efficientnet_lite0 *tfp  | 75.074 (24.926) | 92.314 (7.686) | 4.65  | bilinear | 224 | N/A |
+| tf_efficientnet_lite0       | 74.842 (25.158) | 92.170 (7.830) | 4.65  | bicubic | 224 | 0.875 |
 | tf_mobilenetv3_large_075 *tfp | 73.730 (26.270) | 91.616 (8.384) | 3.99 | bilinear | 224 |N/A |
 | tf_mobilenetv3_large_075 | 73.442 (26.558) | 91.352 (8.648) | 3.99 | bilinear | 224 | 0.875 |
 | tf_mobilenetv3_large_minimal_100 *tfp | 72.678 (27.322) | 90.860 (9.140) | 3.92 | bilinear | 224 | N/A |
