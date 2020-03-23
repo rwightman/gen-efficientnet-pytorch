@@ -8,7 +8,7 @@ All models are implemented by GenEfficientNet or MobileNetV3 classes, with strin
 
 ### March 23, 2020
  * Add EfficientNet-Lite models w/ weights ported from [Tensorflow TPU](https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet/lite)
- * Add PyTorch trained MobileNet-V3 Large weights trained from stratch with this code to 75.77% top-1
+ * Add PyTorch trained MobileNet-V3 Large weights with 75.77% top-1
  * IMPORTANT CHANGE (if training from scratch) - weight init changed to better match Tensorflow impl, set `fix_group_fanout=False` in `initialize_weight_goog` for old behavior
 
 ### Feb 12, 2020
