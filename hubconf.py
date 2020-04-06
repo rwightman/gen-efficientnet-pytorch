@@ -12,6 +12,11 @@ from geffnet import mixnet_m
 from geffnet import mixnet_l
 from geffnet import mixnet_xl
 
+from geffnet import mobilenetv2_100
+from geffnet import mobilenetv2_110d
+from geffnet import mobilenetv2_120d
+from geffnet import mobilenetv2_140
+
 from geffnet import mobilenetv3_large_100
 from geffnet import mobilenetv3_rw
 from geffnet import mnasnet_a1

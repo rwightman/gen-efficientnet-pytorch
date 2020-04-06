@@ -34,6 +34,7 @@ from .efficientnet_builder import *
 
 __all__ = ['GenEfficientNet', 'mnasnet_050', 'mnasnet_075', 'mnasnet_100', 'mnasnet_b1', 'mnasnet_140',
            'semnasnet_050', 'semnasnet_075', 'semnasnet_100', 'mnasnet_a1', 'semnasnet_140', 'mnasnet_small',
+           'mobilenetv2_100', 'mobilenetv2_140', 'mobilenetv2_110d', 'mobilenetv2_120d',
            'fbnetc_100', 'spnasnet_100', 'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2',  'efficientnet_b3',
            'efficientnet_b4', 'efficientnet_b5', 'efficientnet_b6', 'efficientnet_b7', 'efficientnet_b8',
            'efficientnet_l2', 'efficientnet_es', 'efficientnet_em', 'efficientnet_el',
@@ -66,6 +67,15 @@ model_urls = {
     'semnasnet_100':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mnasnet_a1-d9418771.pth',
     'semnasnet_140': None,
+
+    'mobilenetv2_100':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mobilenetv2_100_ra-b33bc2c4.pth',
+    'mobilenetv2_110d':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mobilenetv2_110d_ra-77090ade.pth',
+    'mobilenetv2_120d':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mobilenetv2_120d_ra-5987e2ed.pth',
+    'mobilenetv2_140':
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/mobilenetv2_140_ra-21a4e913.pth',
 
     'fbnetc_100':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/fbnetc_100-c345b898.pth',
@@ -379,6 +389,35 @@ def _gen_mnasnet_small(variant, channel_multiplier=1.0, pretrained=False, **kwar
         channel_multiplier=channel_multiplier,
         act_layer=resolve_act_layer(kwargs, 'relu'),
         norm_kwargs=resolve_bn_args(kwargs),
+        **kwargs
+    )
+    model = _create_model(model_kwargs, variant, pretrained)
+    return model
+
+
+def _gen_mobilenet_v2(
+        variant, channel_multiplier=1.0, depth_multiplier=1.0, fix_stem_head=False, pretrained=False, **kwargs):
+    """ Generate MobileNet-V2 network
+    Ref impl: https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet_v2.py
+    Paper: https://arxiv.org/abs/1801.04381
+    """
+    arch_def = [
+        ['ds_r1_k3_s1_c16'],
+        ['ir_r2_k3_s2_e6_c24'],
+        ['ir_r3_k3_s2_e6_c32'],
+        ['ir_r4_k3_s2_e6_c64'],
+        ['ir_r3_k3_s1_e6_c96'],
+        ['ir_r3_k3_s2_e6_c160'],
+        ['ir_r1_k3_s1_e6_c320'],
+    ]
+    model_kwargs = dict(
+        block_args=decode_arch_def(arch_def, depth_multiplier=depth_multiplier, fix_first_last=fix_stem_head),
+        num_features=1280 if fix_stem_head else round_channels(1280, channel_multiplier, 8, None),
+        stem_size=32,
+        fix_stem=fix_stem_head,
+        channel_multiplier=channel_multiplier,
+        norm_kwargs=resolve_bn_args(kwargs),
+        act_layer=nn.ReLU6,
         **kwargs
     )
     model = _create_model(model_kwargs, variant, pretrained)
@@ -716,6 +755,32 @@ def semnasnet_140(pretrained=False, **kwargs):
 def mnasnet_small(pretrained=False, **kwargs):
     """ MNASNet Small,  depth multiplier of 1.0. """
     model = _gen_mnasnet_small('mnasnet_small', 1.0, pretrained=pretrained, **kwargs)
+    return model
+
+
+def mobilenetv2_100(pretrained=False, **kwargs):
+    """ MobileNet V2 w/ 1.0 channel multiplier """
+    model = _gen_mobilenet_v2('mobilenetv2_100', 1.0, pretrained=pretrained, **kwargs)
+    return model
+
+
+def mobilenetv2_140(pretrained=False, **kwargs):
+    """ MobileNet V2 w/ 1.4 channel multiplier """
+    model = _gen_mobilenet_v2('mobilenetv2_140', 1.4, pretrained=pretrained, **kwargs)
+    return model
+
+
+def mobilenetv2_110d(pretrained=False, **kwargs):
+    """ MobileNet V2 w/ 1.1 channel, 1.2 depth multipliers"""
+    model = _gen_mobilenet_v2(
+        'mobilenetv2_110d', 1.1, depth_multiplier=1.2, fix_stem_head=True, pretrained=pretrained, **kwargs)
+    return model
+
+
+def mobilenetv2_120d(pretrained=False, **kwargs):
+    """ MobileNet V2 w/ 1.2 channel, 1.4 depth multipliers """
+    model = _gen_mobilenet_v2(
+        'mobilenetv2_120d', 1.2, depth_multiplier=1.4, fix_stem_head=True, pretrained=pretrained, **kwargs)
     return model
 
 
