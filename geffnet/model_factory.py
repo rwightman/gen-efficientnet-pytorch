@@ -1,6 +1,8 @@
-from .mobilenetv3 import *
-from .gen_efficientnet import *
+from .config import set_layer_config
 from .helpers import load_checkpoint
+
+from .gen_efficientnet import *
+from .mobilenetv3 import *
 
 
 def create_model(
@@ -15,7 +17,11 @@ def create_model(
 
     if model_name in globals():
         create_fn = globals()[model_name]
-        model = create_fn(**margs, **kwargs)
+        with set_layer_config(
+                scriptable=kwargs.pop('scriptable', None),
+                exportable=kwargs.pop('exportable', None),
+                no_jit=kwargs.pop('no_jit', None)):
+            model = create_fn(**margs, **kwargs)
     else:
         raise RuntimeError('Unknown model (%s)' % model_name)
 

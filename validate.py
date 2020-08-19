@@ -58,16 +58,14 @@ def main():
     if not args.checkpoint and not args.pretrained:
         args.pretrained = True
 
-    if args.torchscript:
-        geffnet.config.set_scriptable(True)
-
     # create model
     model = geffnet.create_model(
         args.model,
         num_classes=args.num_classes,
         in_chans=3,
         pretrained=args.pretrained,
-        checkpoint_path=args.checkpoint)
+        checkpoint_path=args.checkpoint,
+        scriptable=args.torchscript)
 
     if args.torchscript:
         torch.jit.optimized_execution(True)

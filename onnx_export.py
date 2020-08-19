@@ -59,16 +59,16 @@ def main():
     if args.checkpoint:
         args.pretrained = False
 
-    # disables autofn/jit scripted activations and use Conv2dSameExport layers for models with SAME padding
-    geffnet.config.set_exportable(True)
-
     print("==> Creating PyTorch {} model".format(args.model))
+    # NOTE exportable=True flag disables autofn/jit scripted activations and uses Conv2dSameExport layers
+    # for models using SAME padding
     model = geffnet.create_model(
         args.model,
         num_classes=args.num_classes,
         in_chans=3,
         pretrained=args.pretrained,
-        checkpoint_path=args.checkpoint)
+        checkpoint_path=args.checkpoint,
+        exportable=True)
 
     model.eval()
 
