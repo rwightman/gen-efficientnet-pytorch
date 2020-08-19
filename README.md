@@ -6,6 +6,14 @@ All models are implemented by GenEfficientNet or MobileNetV3 classes, with strin
 
 ## What's New
 
+### Aug 19, 2020
+* Add updated PyTorch trained EfficientNet-B3 weights trained by myself with `timm` (82.1 top-1)
+* Add PyTorch trained EfficientNet-Lite0 contributed by [@hal-314](https://github.com/hal-314) (75.5 top-1)
+* Update ONNX and Caffe2 export / utility scripts to work with latest PyTorch / ONNX
+* ONNX runtime based validation script added
+* activations (mostly) brought in sync with `timm` equivalents
+
+
 ### April 5, 2020
 * Add some newly trained MobileNet-V2 models trained with latest h-params, rand augment. They compare quite favourably to EfficientNet-Lite
   * 3.5M param MobileNet-V2 100 @ 73%
@@ -77,8 +85,8 @@ I've managed to train several of the models to accuracies close to or above the 
 
 |Model | Prec@1 (Err) | Prec@5 (Err) | Param#(M) | MAdds(M) | Image Scaling | Resolution | Crop |
 |---|---|---|---|---|---|---|---|
-| efficientnet_b3 | 81.866 (18.134) | 95.836 (4.164) | 12.23 | TBD | bicubic | 320 | 1.0 |
-| efficientnet_b3 | 81.508 (18.492) | 95.672 (4.328) | 12.23 | TBD | bicubic | 300 | 0.904 |
+| efficientnet_b3 | 82.240 (17.760) | 96.116 (3.884) | 12.23 | TBD | bicubic | 320 | 1.0 |
+| efficientnet_b3 | 82.076 (17.924) | 96.020 (3.980) | 12.23 | TBD | bicubic | 300 | 0.904 |
 | mixnet_xl | 81.074 (18.926) | 95.282 (4.718) | 11.90 | TBD | bicubic | 256 | 1.0 |
 | efficientnet_b2 | 80.612 (19.388) | 95.318 (4.682) | 9.1 | TBD | bicubic | 288 | 1.0 |
 | mixnet_xl | 80.476 (19.524) | 94.936 (5.064) | 11.90 | TBD | bicubic | 224 | 0.875 |
@@ -93,6 +101,7 @@ I've managed to train several of the models to accuracies close to or above the 
 | mixnet_s | 75.988 (24.012) | 92.794 (7.206) | 4.13 | TBD | bicubic | 224 | 0.875 |
 | mobilenetv3_large_100 | 75.766 (24.234) | 92.542 (7.458) | 5.5 | TBD | bicubic | 224 | 0.875 |
 | mobilenetv3_rw | 75.634 (24.366) | 92.708 (7.292) | 5.5 | 219 | bicubic | 224 | 0.875 |
+| efficientnet_lite0 | 75.472 (24.528) | 92.520 (7.480) | 4.65 | TBD | bicubic | 224 | 0.875 |
 | mnasnet_a1 | 75.448 (24.552) | 92.604 (7.396) | 3.9 | 312 | bicubic | 224 | 0.875 |
 | fbnetc_100 | 75.124 (24.876) | 92.386 (7.614) | 5.6 | 385 | bilinear | 224 | 0.875 |
 | mobilenetv2_110d | 75.052 (24.948) | 92.180 (7.820) | 4.5 | TBD | bicubic | 224 | 0.875 |
@@ -232,17 +241,17 @@ Google tf and tflite weights ported from official Tensorflow repositories
 
 ### Environment
 
-All development and testing has been done in Conda Python 3 environments on Linux x86-64 systems, specifically Python 3.6.x and 3.7.x.
+All development and testing has been done in Conda Python 3 environments on Linux x86-64 systems, specifically Python 3.6.x, 3.7.x, 3.8.x.
 
 Users have reported that a Python 3 Anaconda install in Windows works. I have not verified this myself.
 
-PyTorch versions 1.2. 1.3.1, 1.4 have been tested with this code.
+PyTorch versions 1.4, 1.5, 1.6 have been tested with this code.
 
 I've tried to keep the dependencies minimal, the setup is as per the PyTorch default install instructions for Conda:
 ```
 conda create -n torch-env
 conda activate torch-env
-conda install -c pytorch pytorch torchvision cudatoolkit=10
+conda install -c pytorch pytorch torchvision cudatoolkit=10.2
 ```
 
 ### PyTorch Hub
@@ -268,7 +277,7 @@ pip install geffnet
 Eval use:
 ```
 >>> import geffnet
->>> m = geffnet.create_model('mobilenetv3_rw', pretrained=True)
+>>> m = geffnet.create_model('mobilenetv3_large_100', pretrained=True)
 >>> m.eval()
 ```
 
@@ -288,14 +297,27 @@ Create in a nn.Sequential container, for fast.ai, etc:
 
 ### Exporting
 
-Scripts to export models to ONNX and then to Caffe2 are included, along with a Caffe2 script to verify.
+Scripts are included to
+* export models to ONNX (`onnx_export.py`)
+* optimized ONNX graph (`onnx_optimize.py` or `onnx_validate.py` w/ `--onnx-output-opt` arg)
+* validate with ONNX runtime  (`onnx_validate.py`)
+* convert ONNX model to Caffe2 (`onnx_to_caffe.py`)
+* validate in Caffe2 (`caffe2_validate.py`)
+* benchmark in Caffe2 w/ FLOPs, parameters output (`caffe2_benchmark.py`)
 
 As an example, to export the MobileNet-V3 pretrained model and then run an Imagenet validation:
 ```
-python onnx_export.py --model tf_mobilenetv3_large_100 ./mobilenetv3_100.onnx
-python onnx_optimize.py ./mobilenetv3_100.onnx --output ./mobilenetv3_100-opt.onnx
-python onnx_to_caffe.py ./mobilenetv3_100-opt.onnx --c2-prefix mobilenetv3
-python caffe2_validate.py /imagenet/validation/ --c2-init ./mobilenetv3.init.pb --c2-predict ./mobilenetv3.predict.pb --interpolation bicubic
+python onnx_export.py --model mobilenetv3_large_100 ./mobilenetv3_100.onnx
+python onnx_validate.py /imagenet/validation/ --onnx-input ./mobilenetv3_100.onnx 
 ```
-**NOTE** the TF ported weights with the 'SAME' conv padding activated cannot be exported to ONNX unless `_EXPORTABLE` flag in `config.py` is set to True. Use `config.set_exportable(True)` as in the updated `onnx_export.py` example script.
+
+These scripts were tested to be working as of PyTorch 1.6 and ONNX 1.7 w/ ONNX runtime 1.4. Caffe2 compatible
+export now requires additional args mentioned in the export script (not needed in earlier versions).
+
+#### Export Notes
+1. The TF ported weights with the 'SAME' conv padding activated cannot be exported to ONNX unless `_EXPORTABLE` flag in `config.py` is set to True. Use `config.set_exportable(True)` as in the `onnx_export.py` script.
+2. TF ported models with 'SAME' padding will have the padding fixed at export time to the resolution used for export. Even though dynamic padding is supported in opset >= 11, I can't get it working.
+3. ONNX optimize facility doesn't work reliably in PyTorch 1.6 / ONNX 1.7. Fortunately, the onnxruntime based inference is working very well now and includes on the fly optimization.
+3. ONNX / Caffe2 export/import frequently breaks with different PyTorch and ONNX version releases. Please check their respective issue trackers before filing issues here.
+
 

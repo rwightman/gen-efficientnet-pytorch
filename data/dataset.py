@@ -1,7 +1,7 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+""" Quick n simple image folder dataset
 
+Copyright 2020 Ross Wightman
+"""
 import torch.utils.data as data
 
 import os

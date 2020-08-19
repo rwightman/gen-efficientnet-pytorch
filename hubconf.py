@@ -7,6 +7,8 @@ from geffnet import efficientnet_b3
 
 from geffnet import efficientnet_es
 
+from geffnet import efficientnet_lite0
+
 from geffnet import mixnet_s
 from geffnet import mixnet_m
 from geffnet import mixnet_l

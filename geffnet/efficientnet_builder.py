@@ -1,3 +1,7 @@
+""" EfficientNet / MobileNetV3 Blocks and Builder
+
+Copyright 2020 Ross Wightman
+"""
 import re
 from copy import deepcopy
 

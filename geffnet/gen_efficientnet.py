@@ -24,7 +24,7 @@ A generic MobileNet class with building blocks to support a variety of models:
 
 * And likely more...
 
-Hacked together by Ross Wightman
+Hacked together by / Copyright 2020 Ross Wightman
 """
 import torch.nn as nn
 import torch.nn.functional as F
@@ -89,7 +89,7 @@ model_urls = {
     'efficientnet_b2':
         'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_b2_ra-bcdf34b7.pth',
     'efficientnet_b3':
-        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_b3_ra-a5e2fbc7.pth',
+        'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_b3_ra2-cf984f9c.pth',
     'efficientnet_b4': None,
     'efficientnet_b5': None,
     'efficientnet_b6': None,
@@ -106,7 +106,7 @@ model_urls = {
     'efficientnet_cc_b0_8e': None,
     'efficientnet_cc_b1_8e': None,
 
-    'efficientnet_lite0': None,
+    'efficientnet_lite0': 'https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-weights/efficientnet_lite0_ra-37913777.pth',
     'efficientnet_lite1': None,
     'efficientnet_lite2': None,
     'efficientnet_lite3': None,
