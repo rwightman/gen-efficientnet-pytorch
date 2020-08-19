@@ -10,6 +10,10 @@ _EXPORTABLE = False
 _SCRIPTABLE = False
 
 
+# Set to True to force no use of torch.jit.script for model activations
+_NO_JIT = False
+
+
 def is_exportable():
     return _EXPORTABLE
 
@@ -27,3 +31,11 @@ def set_scriptable(value):
     global _SCRIPTABLE
     _SCRIPTABLE = value
 
+
+def is_no_jit():
+    return _NO_JIT
+
+
+def set_no_jit(value):
+    global _NO_JIT
+    _NO_JIT = value

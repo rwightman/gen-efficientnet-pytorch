@@ -1,7 +1,10 @@
 """ Caffe2 validation script
-This script is intended to verify exported models running in Caffe2
-It utilizes the same PyTorch dataloader/processing pipeline for comparison against
-the originals, I also have no desire to write that code in Caffe2.
+
+This script is created to verify exported ONNX models running in Caffe2
+It utilizes the same PyTorch dataloader/processing pipeline for a
+fair comparison against the originals.
+
+Copyright 2020 Ross Wightman
 """
 import argparse
 import numpy as np
@@ -14,12 +17,12 @@ import time
 parser = argparse.ArgumentParser(description='Caffe2 ImageNet Validation')
 parser.add_argument('data', metavar='DIR',
                     help='path to dataset')
-parser.add_argument('--model', '-m', metavar='MODEL', default='spnasnet1_00',
-                    help='model architecture (default: dpn92)')
+parser.add_argument('--c2-prefix', default='', type=str, metavar='NAME',
+                    help='caffe2 model pb name prefix')
 parser.add_argument('--c2-init', default='', type=str, metavar='PATH',
-                    help='path to latest checkpoint (default: none)')
+                    help='caffe2 model init .pb')
 parser.add_argument('--c2-predict', default='', type=str, metavar='PATH',
-                    help='path to latest checkpoint (default: none)')
+                    help='caffe2 model predict .pb')
 parser.add_argument('-j', '--workers', default=2, type=int, metavar='N',
                     help='number of data loading workers (default: 2)')
 parser.add_argument('-b', '--batch-size', default=256, type=int,
@@ -43,6 +46,9 @@ parser.add_argument('--print-freq', '-p', default=10, type=int,
 def main():
     args = parser.parse_args()
     args.gpu_id = 0
+    if args.c2_prefix:
+        args.c2_init = args.c2_prefix + '.init.pb'
+        args.c2_predict = args.c2_prefix + '.predict.pb'
 
     model = model_helper.ModelHelper(name="validation_net", init_params=False)
 
@@ -50,15 +56,15 @@ def main():
     init_net_proto = caffe2_pb2.NetDef()
     with open(args.c2_init, "rb") as f:
         init_net_proto.ParseFromString(f.read())
-    model.param_init_net = core.Net(init_net_proto)  # model.param_init_net.AppendNet(core.Net(init_net_proto)) #
+    model.param_init_net = core.Net(init_net_proto)
 
     # bring in the predict net from predict_net.pb
     predict_net_proto = caffe2_pb2.NetDef()
     with open(args.c2_predict, "rb") as f:
         predict_net_proto.ParseFromString(f.read())
-    model.net = core.Net(predict_net_proto)  # model.net.AppendNet(core.Net(predict_net_proto))
+    model.net = core.Net(predict_net_proto)
 
-    data_config = resolve_data_config(args.model, args)
+    data_config = resolve_data_config(None, args)
     loader = create_loader(
         Dataset(args.data, load_bytes=args.tf_preprocessing),
         input_size=data_config['input_size'],

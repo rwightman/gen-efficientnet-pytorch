@@ -1,9 +1,19 @@
+""" Activations
+
+A collection of activations fn and modules with a common interface so that they can
+easily be swapped. All have an `inplace` arg even if not used.
+
+Copyright 2020 Ross Wightman
+"""
 from torch import nn as nn
 from torch.nn import functional as F
 
 
 def swish(x, inplace: bool = False):
-    """Swish - Described in: https://arxiv.org/abs/1710.05941
+    """Swish - Described originally as SiLU (https://arxiv.org/abs/1702.03118v3)
+    and also as Swish (https://arxiv.org/abs/1710.05941).
+
+    TODO Rename to SiLU with addition to PyTorch
     """
     return x.mul_(x.sigmoid()) if inplace else x.mul(x.sigmoid())
 

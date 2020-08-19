@@ -1,5 +1,5 @@
 from geffnet import config
-from geffnet.activations.activations_autofn import *
+from geffnet.activations.activations_me import *
 from geffnet.activations.activations_jit import *
 from geffnet.activations.activations import *
 
@@ -15,16 +15,16 @@ _ACT_FN_DEFAULT = dict(
     hard_swish=hard_swish,
 )
 
-_ACT_FN_AUTO = dict(
-    swish=swish_auto,
-    mish=mish_auto,
-)
-
 _ACT_FN_JIT = dict(
     swish=swish_jit,
     mish=mish_jit,
-    #hard_swish=hard_swish_jit,
-    #hard_sigmoid_jit=hard_sigmoid_jit,
+)
+
+_ACT_FN_ME = dict(
+    swish=swish_me,
+    mish=mish_me,
+    hard_swish=hard_swish_me,
+    hard_sigmoid_jit=hard_sigmoid_me,
 )
 
 _ACT_LAYER_DEFAULT = dict(
@@ -38,16 +38,16 @@ _ACT_LAYER_DEFAULT = dict(
     hard_swish=HardSwish,
 )
 
-_ACT_LAYER_AUTO = dict(
-    swish=SwishAuto,
-    mish=MishAuto,
-)
-
 _ACT_LAYER_JIT = dict(
     swish=SwishJit,
     mish=MishJit,
-    #hard_swish=HardSwishJit,
-    #hard_sigmoid=HardSigmoidJit
+)
+
+_ACT_LAYER_ME = dict(
+    swish=SwishMe,
+    mish=MishMe,
+    hard_swish=HardSwishMe,
+    hard_sigmoid=HardSigmoidMe
 )
 
 _OVERRIDE_FN = dict()
@@ -92,14 +92,15 @@ def get_act_fn(name='relu'):
     """
     if name in _OVERRIDE_FN:
         return _OVERRIDE_FN[name]
-    if not config.is_exportable() and not config.is_scriptable():
-        # If not exporting or scripting the model, first look for a JIT optimized version
-        # of our activation, then a custom autograd.Function variant before defaulting to
-        # a Python or Torch builtin impl
-        if name in _ACT_FN_JIT:
-            return _ACT_FN_JIT[name]
-        if name in _ACT_FN_AUTO:
-            return _ACT_FN_AUTO[name]
+    no_me = config.is_exportable() or config.is_scriptable() or config.is_no_jit()
+    if not no_me and name in _ACT_FN_ME:
+        # If not exporting or scripting the model, first look for a memory optimized version
+        # activation with custom autograd, then fallback to jit scripted, then a Python or Torch builtin
+        return _ACT_FN_ME[name]
+    no_jit = config.is_exportable() or config.is_no_jit()
+    # NOTE: export tracing should work with jit scripted components, but I keep running into issues
+    if no_jit and name in _ACT_FN_JIT:  # jit scripted models should be okay for export/scripting
+        return _ACT_FN_JIT[name]
     return _ACT_FN_DEFAULT[name]
 
 
@@ -110,11 +111,12 @@ def get_act_layer(name='relu'):
     """
     if name in _OVERRIDE_LAYER:
         return _OVERRIDE_LAYER[name]
-    if not config.is_exportable() and not config.is_scriptable():
-        if name in _ACT_LAYER_JIT:
-            return _ACT_LAYER_JIT[name]
-        if name in _ACT_LAYER_AUTO:
-            return _ACT_LAYER_AUTO[name]
+    no_me = config.is_exportable() or config.is_scriptable() or config.is_no_jit()
+    if not no_me and name in _ACT_LAYER_ME:
+        return _ACT_LAYER_ME[name]
+    no_jit = config.is_exportable() or config.is_no_jit()
+    if not no_jit and name in _ACT_LAYER_JIT:  # jit scripted models should be okay for export/scripting
+        return _ACT_LAYER_JIT[name]
     return _ACT_LAYER_DEFAULT[name]
 
 

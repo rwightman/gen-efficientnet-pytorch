@@ -17,7 +17,7 @@ IMAGENET_DPN_STD = tuple([1 / (.0167 * 255)] * 3)
 def resolve_data_config(model, args, default_cfg={}, verbose=True):
     new_config = {}
     default_cfg = default_cfg
-    if not default_cfg and hasattr(model, 'default_cfg'):
+    if not default_cfg and model is not None and hasattr(model, 'default_cfg'):
         default_cfg = model.default_cfg
 
     # Resolve input/image size
@@ -40,7 +40,7 @@ def resolve_data_config(model, args, default_cfg={}, verbose=True):
         new_config['interpolation'] = default_cfg['interpolation']
 
     # resolve dataset + model mean for normalization
-    new_config['mean'] = get_mean_by_model(args.model)
+    new_config['mean'] = IMAGENET_DEFAULT_MEAN
     if args.mean is not None:
         mean = tuple(args.mean)
         if len(mean) == 1:
@@ -52,7 +52,7 @@ def resolve_data_config(model, args, default_cfg={}, verbose=True):
         new_config['mean'] = default_cfg['mean']
 
     # resolve dataset + model std deviation for normalization
-    new_config['std'] = get_std_by_model(args.model)
+    new_config['std'] = IMAGENET_DEFAULT_STD
     if args.std is not None:
         std = tuple(args.std)
         if len(std) == 1:
@@ -76,26 +76,6 @@ def resolve_data_config(model, args, default_cfg={}, verbose=True):
             print('\t%s: %s' % (n, str(v)))
 
     return new_config
-
-
-def get_mean_by_model(model_name):
-    model_name = model_name.lower()
-    if 'dpn' in model_name:
-        return IMAGENET_DPN_STD
-    elif 'ception' in model_name:
-        return IMAGENET_INCEPTION_MEAN
-    else:
-        return IMAGENET_DEFAULT_MEAN
-
-
-def get_std_by_model(model_name):
-    model_name = model_name.lower()
-    if 'dpn' in model_name:
-        return IMAGENET_DEFAULT_STD
-    elif 'ception' in model_name:
-        return IMAGENET_INCEPTION_STD
-    else:
-        return IMAGENET_DEFAULT_STD
 
 
 class ToNumpy:

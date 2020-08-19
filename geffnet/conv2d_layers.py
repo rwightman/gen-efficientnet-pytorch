@@ -1,3 +1,10 @@
+""" Conv2D w/ SAME padding, CondConv, MixedConv
+
+A collection of conv layers and padding helpers needed by EfficientNet, MixNet, and
+MobileNetV3 models that maintain weight compatibility with original Tensorflow models.
+
+Copyright 2020 Ross Wightman
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -99,10 +106,9 @@ class Conv2dSameExport(nn.Conv2d):
             pad_arg = _same_pad_arg(input_size, self.weight.size()[-2:], self.stride, self.dilation)
             self.pad = nn.ZeroPad2d(pad_arg)
             self.pad_input_size = input_size
-        else:
-            assert self.pad_input_size == input_size
 
-        x = self.pad(x)
+        if self.pad is not None:
+            x = self.pad(x)
         return F.conv2d(
             x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
 

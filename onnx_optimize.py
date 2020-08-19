@@ -1,4 +1,14 @@
+""" ONNX optimization script
+
+Run ONNX models through the optimizer to prune unneeded nodes, fuse batchnorm layers into conv, etc.
+
+NOTE: This isn't working consistently in recent PyTorch/ONNX combos (ie PyTorch 1.6 and ONNX 1.7),
+it seems time to switch to using the onnxruntime online optimizer (can also be saved for offline).
+
+Copyright 2020 Ross Wightman
+"""
 import argparse
+import warnings
 
 import onnx
 from onnx import optimizer
@@ -55,6 +65,11 @@ def main():
     ]
 
     # Apply the optimization on the original serialized model
+    # WARNING I've had issues with optimizer in recent versions of PyTorch / ONNX causing
+    # 'duplicate definition of name' errors, see: https://github.com/onnx/onnx/issues/2401
+    # It may be better to rely on onnxruntime optimizations, see onnx_validate.py script.
+    warnings.warn("I've had issues with optimizer in recent versions of PyTorch / ONNX."
+                  "Try onnxruntime optimization if this doesn't work.")
     optimized_model = optimizer.optimize(onnx_model, passes)
 
     num_optimized_nodes, optimzied_graph_str = traverse_graph(optimized_model.graph)

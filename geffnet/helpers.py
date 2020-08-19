@@ -1,3 +1,6 @@
+""" Checkpoint loading / state_dict helpers
+Copyright 2020 Ross Wightman
+"""
 import torch
 import os
 from collections import OrderedDict
