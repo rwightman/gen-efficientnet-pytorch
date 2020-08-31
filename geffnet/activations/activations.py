@@ -27,19 +27,33 @@ class Swish(nn.Module):
         return swish(x, self.inplace)
 
 
-def mish(x, inplace: bool = False):
+class MishFn(torch.autograd.Function):
     """Mish: A Self Regularized Non-Monotonic Neural Activation Function - https://arxiv.org/abs/1908.08681
+    Experimental memory-efficient variant
     """
-    return x.mul(F.softplus(x).tanh())
 
+    @staticmethod
+    def forward(ctx, x):
+        x_tanh_sp = F.softplus(x).tanh()
+        if x.requires_grad:
+            ctx.save_for_backward(x_tanh_sp + x * x.sigmoid() * (1 - x_tanh_sp.square()))
+        y = x * x_tanh_sp
+        return y
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        if len(ctx.saved_tensors) == 0:
+            return None
+        grad, = ctx.saved_tensors
+        return grad_output * grad
+    
 
 class Mish(nn.Module):
     def __init__(self, inplace: bool = False):
         super(Mish, self).__init__()
-        self.inplace = inplace
-
+    
     def forward(self, x):
-        return mish(x, self.inplace)
+        return mish(x)
 
 
 def sigmoid(x, inplace: bool = False):
