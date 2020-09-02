@@ -3,15 +3,22 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import os
 import time
 import torch
 import torch.nn as nn
 import torch.nn.parallel
+from contextlib import suppress
 
 import geffnet
 from data import Dataset, create_loader, resolve_data_config
 from utils import accuracy, AverageMeter
+
+has_native_amp = False
+try:
+    if getattr(torch.cuda.amp, 'autocast') is not None:
+        has_native_amp = True
+except AttributeError:
+    pass
 
 torch.backends.cudnn.benchmark = True
 
@@ -50,6 +57,10 @@ parser.add_argument('--tf-preprocessing', dest='tf_preprocessing', action='store
                     help='use tensorflow mnasnet preporcessing')
 parser.add_argument('--no-cuda', dest='no_cuda', action='store_true',
                     help='')
+parser.add_argument('--channels-last', action='store_true', default=False,
+                    help='Use channels_last memory layout')
+parser.add_argument('--amp', action='store_true', default=False,
+                    help='Use native Torch AMP mixed precision.')
 
 
 def main():
@@ -57,6 +68,13 @@ def main():
 
     if not args.checkpoint and not args.pretrained:
         args.pretrained = True
+
+    amp_autocast = suppress  # do nothing
+    if args.amp:
+        if not has_native_amp:
+            print("Native Torch AMP is not available (requires torch >= 1.6), using FP32.")
+        else:
+            amp_autocast = torch.cuda.amp.autocast
 
     # create model
     model = geffnet.create_model(
@@ -66,6 +84,9 @@ def main():
         pretrained=args.pretrained,
         checkpoint_path=args.checkpoint,
         scriptable=args.torchscript)
+
+    if args.channels_last:
+        model = model.to(memory_format=torch.channels_last)
 
     if args.torchscript:
         torch.jit.optimized_execution(True)
@@ -109,10 +130,13 @@ def main():
             if not args.no_cuda:
                 target = target.cuda()
                 input = input.cuda()
+            if args.channels_last:
+                input = input.contiguous(memory_format=torch.channels_last)
 
             # compute output
-            output = model(input)
-            loss = criterion(output, target)
+            with amp_autocast():
+                output = model(input)
+                loss = criterion(output, target)
 
             # measure accuracy and record loss
             prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
