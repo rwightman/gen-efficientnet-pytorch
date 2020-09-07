@@ -43,7 +43,7 @@ def _get_padding(kernel_size, stride=1, dilation=1, **_):
 
 
 def _calc_same_pad(i: int, k: int, s: int, d: int):
-    return max((math.ceil(i / s) - 1) * s + (k - 1) * d + 1 - i, 0)
+    return max((-(i // -s) - 1) * s + (k - 1) * d + 1 - i, 0)
 
 
 def _same_pad_arg(input_size, kernel_size, stride, dilation):
@@ -67,8 +67,7 @@ def conv2d_same(
     kh, kw = weight.size()[-2:]
     pad_h = _calc_same_pad(ih, kh, stride[0], dilation[0])
     pad_w = _calc_same_pad(iw, kw, stride[1], dilation[1])
-    if pad_h > 0 or pad_w > 0:
-        x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2])
+    x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2])
     return F.conv2d(x, weight, bias, stride, (0, 0), dilation, groups)
 
 

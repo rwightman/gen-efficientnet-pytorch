@@ -3,7 +3,7 @@
 from typing import Any, Optional
 
 __all__ = [
-    'is_exportable', 'is_scriptable', 'is_no_jit',
+    'is_exportable', 'is_scriptable', 'is_no_jit', 'layer_config_kwargs',
     'set_exportable', 'set_scriptable', 'set_no_jit', 'set_layer_config'
 ]
 
@@ -113,3 +113,11 @@ class set_layer_config:
         global _NO_ACTIVATION_JIT
         _SCRIPTABLE, _EXPORTABLE, _NO_JIT, _NO_ACTIVATION_JIT = self.prev
         return False
+
+
+def layer_config_kwargs(kwargs):
+    """ Consume config kwargs and return contextmgr obj """
+    return set_layer_config(
+        scriptable=kwargs.pop('scriptable', None),
+        exportable=kwargs.pop('exportable', None),
+        no_jit=kwargs.pop('no_jit', None))
