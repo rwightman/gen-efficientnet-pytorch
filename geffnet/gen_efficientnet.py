@@ -29,6 +29,8 @@ Hacked together by / Copyright 2020 Ross Wightman
 import torch.nn as nn
 import torch.nn.functional as F
 
+from .config import layer_config_kwargs, is_scriptable
+from .conv2d_layers import select_conv2d
 from .helpers import load_pretrained
 from .efficientnet_builder import *
 
@@ -316,15 +318,16 @@ def _gen_mnasnet_a1(variant, channel_multiplier=1.0, pretrained=False, **kwargs)
         # stage 6, 7x7 in
         ['ir_r1_k3_s1_e6_c320'],
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def),
-        stem_size=32,
-        channel_multiplier=channel_multiplier,
-        act_layer=resolve_act_layer(kwargs, 'relu'),
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def),
+            stem_size=32,
+            channel_multiplier=channel_multiplier,
+            act_layer=resolve_act_layer(kwargs, 'relu'),
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
@@ -353,15 +356,16 @@ def _gen_mnasnet_b1(variant, channel_multiplier=1.0, pretrained=False, **kwargs)
         # stage 6, 7x7 in
         ['ir_r1_k3_s1_e6_c320_noskip']
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def),
-        stem_size=32,
-        channel_multiplier=channel_multiplier,
-        act_layer=resolve_act_layer(kwargs, 'relu'),
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def),
+            stem_size=32,
+            channel_multiplier=channel_multiplier,
+            act_layer=resolve_act_layer(kwargs, 'relu'),
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
@@ -383,15 +387,16 @@ def _gen_mnasnet_small(variant, channel_multiplier=1.0, pretrained=False, **kwar
         ['ir_r3_k5_s2_e6_c88_se0.25'],
         ['ir_r1_k3_s1_e6_c144']
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def),
-        stem_size=8,
-        channel_multiplier=channel_multiplier,
-        act_layer=resolve_act_layer(kwargs, 'relu'),
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def),
+            stem_size=8,
+            channel_multiplier=channel_multiplier,
+            act_layer=resolve_act_layer(kwargs, 'relu'),
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
@@ -410,17 +415,18 @@ def _gen_mobilenet_v2(
         ['ir_r3_k3_s2_e6_c160'],
         ['ir_r1_k3_s1_e6_c320'],
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def, depth_multiplier=depth_multiplier, fix_first_last=fix_stem_head),
-        num_features=1280 if fix_stem_head else round_channels(1280, channel_multiplier, 8, None),
-        stem_size=32,
-        fix_stem=fix_stem_head,
-        channel_multiplier=channel_multiplier,
-        norm_kwargs=resolve_bn_args(kwargs),
-        act_layer=nn.ReLU6,
-        **kwargs
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def, depth_multiplier=depth_multiplier, fix_first_last=fix_stem_head),
+            num_features=1280 if fix_stem_head else round_channels(1280, channel_multiplier, 8, None),
+            stem_size=32,
+            fix_stem=fix_stem_head,
+            channel_multiplier=channel_multiplier,
+            norm_kwargs=resolve_bn_args(kwargs),
+            act_layer=nn.ReLU6,
+            **kwargs
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
@@ -442,16 +448,17 @@ def _gen_fbnetc(variant, channel_multiplier=1.0, pretrained=False, **kwargs):
         ['ir_r4_k5_s2_e6_c184'],
         ['ir_r1_k3_s1_e6_c352'],
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def),
-        stem_size=16,
-        num_features=1984,  # paper suggests this, but is not 100% clear
-        channel_multiplier=channel_multiplier,
-        act_layer=resolve_act_layer(kwargs, 'relu'),
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def),
+            stem_size=16,
+            num_features=1984,  # paper suggests this, but is not 100% clear
+            channel_multiplier=channel_multiplier,
+            act_layer=resolve_act_layer(kwargs, 'relu'),
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
@@ -479,15 +486,16 @@ def _gen_spnasnet(variant, channel_multiplier=1.0, pretrained=False, **kwargs):
         # stage 6, 7x7 in
         ['ir_r1_k3_s1_e6_c320_noskip']
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def),
-        stem_size=32,
-        channel_multiplier=channel_multiplier,
-        act_layer=resolve_act_layer(kwargs, 'relu'),
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def),
+            stem_size=32,
+            channel_multiplier=channel_multiplier,
+            act_layer=resolve_act_layer(kwargs, 'relu'),
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
@@ -523,16 +531,17 @@ def _gen_efficientnet(variant, channel_multiplier=1.0, depth_multiplier=1.0, pre
         ['ir_r4_k5_s2_e6_c192_se0.25'],
         ['ir_r1_k3_s1_e6_c320_se0.25'],
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def, depth_multiplier),
-        num_features=round_channels(1280, channel_multiplier, 8, None),
-        stem_size=32,
-        channel_multiplier=channel_multiplier,
-        act_layer=resolve_act_layer(kwargs, 'swish'),
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs,
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def, depth_multiplier),
+            num_features=round_channels(1280, channel_multiplier, 8, None),
+            stem_size=32,
+            channel_multiplier=channel_multiplier,
+            act_layer=resolve_act_layer(kwargs, 'swish'),
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs,
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
@@ -547,16 +556,17 @@ def _gen_efficientnet_edge(variant, channel_multiplier=1.0, depth_multiplier=1.0
         ['ir_r4_k5_s1_e8_c144'],
         ['ir_r2_k5_s2_e8_c192'],
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def, depth_multiplier),
-        num_features=round_channels(1280, channel_multiplier, 8, None),
-        stem_size=32,
-        channel_multiplier=channel_multiplier,
-        act_layer=resolve_act_layer(kwargs, 'relu'),
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs,
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def, depth_multiplier),
+            num_features=round_channels(1280, channel_multiplier, 8, None),
+            stem_size=32,
+            channel_multiplier=channel_multiplier,
+            act_layer=resolve_act_layer(kwargs, 'relu'),
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs,
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
@@ -572,16 +582,17 @@ def _gen_efficientnet_condconv(
       ['ir_r4_k5_s2_e6_c192_se0.25_cc4'],
       ['ir_r1_k3_s1_e6_c320_se0.25_cc4'],
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def, depth_multiplier, experts_multiplier=experts_multiplier),
-        num_features=round_channels(1280, channel_multiplier, 8, None),
-        stem_size=32,
-        channel_multiplier=channel_multiplier,
-        act_layer=resolve_act_layer(kwargs, 'swish'),
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs,
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def, depth_multiplier, experts_multiplier=experts_multiplier),
+            num_features=round_channels(1280, channel_multiplier, 8, None),
+            stem_size=32,
+            channel_multiplier=channel_multiplier,
+            act_layer=resolve_act_layer(kwargs, 'swish'),
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs,
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
@@ -612,17 +623,18 @@ def _gen_efficientnet_lite(variant, channel_multiplier=1.0, depth_multiplier=1.0
         ['ir_r4_k5_s2_e6_c192'],
         ['ir_r1_k3_s1_e6_c320'],
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def, depth_multiplier, fix_first_last=True),
-        num_features=1280,
-        stem_size=32,
-        fix_stem=True,
-        channel_multiplier=channel_multiplier,
-        act_layer=nn.ReLU6,
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs,
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def, depth_multiplier, fix_first_last=True),
+            num_features=1280,
+            stem_size=32,
+            fix_stem=True,
+            channel_multiplier=channel_multiplier,
+            act_layer=nn.ReLU6,
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs,
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
@@ -647,16 +659,17 @@ def _gen_mixnet_s(variant, channel_multiplier=1.0, pretrained=False, **kwargs):
         ['ir_r1_k3.5.7.9.11_s2_e6_c200_se0.5_nsw', 'ir_r2_k3.5.7.9_p1.1_s1_e6_c200_se0.5_nsw'],  # swish
         # 7x7
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def),
-        num_features=1536,
-        stem_size=16,
-        channel_multiplier=channel_multiplier,
-        act_layer=resolve_act_layer(kwargs, 'relu'),
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def),
+            num_features=1536,
+            stem_size=16,
+            channel_multiplier=channel_multiplier,
+            act_layer=resolve_act_layer(kwargs, 'relu'),
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
@@ -681,16 +694,17 @@ def _gen_mixnet_m(variant, channel_multiplier=1.0, depth_multiplier=1.0, pretrai
         ['ir_r1_k3.5.7.9_s2_e6_c200_se0.5_nsw', 'ir_r3_k3.5.7.9_p1.1_s1_e6_c200_se0.5_nsw'],  # swish
         # 7x7
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def, depth_multiplier, depth_trunc='round'),
-        num_features=1536,
-        stem_size=24,
-        channel_multiplier=channel_multiplier,
-        act_layer=resolve_act_layer(kwargs, 'relu'),
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def, depth_multiplier, depth_trunc='round'),
+            num_features=1536,
+            stem_size=24,
+            channel_multiplier=channel_multiplier,
+            act_layer=resolve_act_layer(kwargs, 'relu'),
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 

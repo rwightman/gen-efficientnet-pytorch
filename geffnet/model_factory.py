@@ -13,15 +13,11 @@ def create_model(
         checkpoint_path='',
         **kwargs):
 
-    margs = dict(num_classes=num_classes, in_chans=in_chans, pretrained=pretrained)
+    model_kwargs = dict(num_classes=num_classes, in_chans=in_chans, pretrained=pretrained, **kwargs)
 
     if model_name in globals():
         create_fn = globals()[model_name]
-        with set_layer_config(
-                scriptable=kwargs.pop('scriptable', None),
-                exportable=kwargs.pop('exportable', None),
-                no_jit=kwargs.pop('no_jit', None)):
-            model = create_fn(**margs, **kwargs)
+        model = create_fn(**model_kwargs)
     else:
         raise RuntimeError('Unknown model (%s)' % model_name)
 

@@ -9,6 +9,9 @@ Hacked together by / Copyright 2020 Ross Wightman
 import torch.nn as nn
 import torch.nn.functional as F
 
+from .activations import get_act_fn, get_act_layer, HardSwish
+from .config import layer_config_kwargs
+from .conv2d_layers import select_conv2d
 from .helpers import load_pretrained
 from .efficientnet_builder import *
 
@@ -151,16 +154,17 @@ def _gen_mobilenet_v3_rw(variant, channel_multiplier=1.0, pretrained=False, **kw
         # stage 6, 7x7 in
         ['cn_r1_k1_s1_c960'],  # hard-swish
     ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def),
-        head_bias=False,  # one of my mistakes
-        channel_multiplier=channel_multiplier,
-        act_layer=resolve_act_layer(kwargs, 'hard_swish'),
-        se_kwargs=dict(gate_fn=get_act_fn('hard_sigmoid'), reduce_mid=True),
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs,
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def),
+            head_bias=False,  # one of my mistakes
+            channel_multiplier=channel_multiplier,
+            act_layer=resolve_act_layer(kwargs, 'hard_swish'),
+            se_kwargs=dict(gate_fn=get_act_fn('hard_sigmoid'), reduce_mid=True),
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs,
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 
@@ -245,18 +249,19 @@ def _gen_mobilenet_v3(variant, channel_multiplier=1.0, pretrained=False, **kwarg
                 # stage 6, 7x7 in
                 ['cn_r1_k1_s1_c960'],  # hard-swish
             ]
-    model_kwargs = dict(
-        block_args=decode_arch_def(arch_def),
-        num_features=num_features,
-        stem_size=16,
-        channel_multiplier=channel_multiplier,
-        act_layer=resolve_act_layer(kwargs, act_layer),
-        se_kwargs=dict(
-            act_layer=get_act_layer('relu'), gate_fn=get_act_fn('hard_sigmoid'), reduce_mid=True, divisor=8),
-        norm_kwargs=resolve_bn_args(kwargs),
-        **kwargs,
-    )
-    model = _create_model(model_kwargs, variant, pretrained)
+    with layer_config_kwargs(kwargs):
+        model_kwargs = dict(
+            block_args=decode_arch_def(arch_def),
+            num_features=num_features,
+            stem_size=16,
+            channel_multiplier=channel_multiplier,
+            act_layer=resolve_act_layer(kwargs, act_layer),
+            se_kwargs=dict(
+                act_layer=get_act_layer('relu'), gate_fn=get_act_fn('hard_sigmoid'), reduce_mid=True, divisor=8),
+            norm_kwargs=resolve_bn_args(kwargs),
+            **kwargs,
+        )
+        model = _create_model(model_kwargs, variant, pretrained)
     return model
 
 

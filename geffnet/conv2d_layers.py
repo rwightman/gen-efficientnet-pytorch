@@ -67,8 +67,7 @@ def conv2d_same(
     kh, kw = weight.size()[-2:]
     pad_h = _calc_same_pad(ih, kh, stride[0], dilation[0])
     pad_w = _calc_same_pad(iw, kw, stride[1], dilation[1])
-    if pad_h > 0 or pad_w > 0:
-        x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2])
+    x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2])
     return F.conv2d(x, weight, bias, stride, (0, 0), dilation, groups)
 
 
