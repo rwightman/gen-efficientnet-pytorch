@@ -85,7 +85,7 @@ class Conv2dSame(nn.Conv2d):
         return conv2d_same(x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
 
 
-class Conv2dSameExport(nn.Conv2d):
+class Conv2dSameExport(nn.Module):
     """ ONNX export friendly Tensorflow like 'SAME' convolution wrapper for 2D convolutions
 
     NOTE: This does not currently work with torch.jit.script
@@ -94,22 +94,26 @@ class Conv2dSameExport(nn.Conv2d):
     # pylint: disable=unused-argument
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
                  padding=0, dilation=1, groups=1, bias=True):
-        super(Conv2dSameExport, self).__init__(
-            in_channels, out_channels, kernel_size, stride, 0, dilation, groups, bias)
+        super(Conv2dSameExport, self).__init__()
         self.pad = None
         self.pad_input_size = (0, 0)
+        self.kernel_size = [kernel_size, kernel_size]
+        self.stride = [stride, stride]
+        self.dilation = [dilation, dilation]
+
+        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, 
+            stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias)
 
     def forward(self, x):
         input_size = x.size()[-2:]
         if self.pad is None:
-            pad_arg = _same_pad_arg(input_size, self.weight.size()[-2:], self.stride, self.dilation)
+            pad_arg = _same_pad_arg(input_size, self.kernel_size, self.stride, self.dilation)
             self.pad = nn.ZeroPad2d(pad_arg)
             self.pad_input_size = input_size
 
         if self.pad is not None:
             x = self.pad(x)
-        return F.conv2d(
-            x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
+        return self.conv(x)
 
 
 def get_padding_value(padding, kernel_size, **kwargs):
