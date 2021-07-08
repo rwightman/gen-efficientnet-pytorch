@@ -5,23 +5,24 @@ MobileNetV3 models that maintain weight compatibility with original Tensorflow m
 
 Copyright 2020 Ross Wightman
 """
+import collections.abc
+import math
+from functools import partial
+from itertools import repeat
+from typing import Tuple, Optional
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch._six import container_abcs
-
-from itertools import repeat
-from functools import partial
-from typing import Union, List, Tuple, Optional, Callable
-import numpy as np
-import math
 
 from .config import *
 
 
+# From PyTorch internals
 def _ntuple(n):
     def parse(x):
-        if isinstance(x, container_abcs.Iterable):
+        if isinstance(x, collections.abc.Iterable):
             return x
         return tuple(repeat(x, n))
     return parse
