@@ -1,3 +1,65 @@
+# Commands(for Internal testing)
+## Install pip packages
+```
+pip install -e .
+pip install gdown pydantic furiosa-sdk[quantizer] furiosa-quantizer-experimental
+```
+## Prepare datasets
+- download imagenet validation
+```
+gdown 128pbRXGwZZAcIVyNRgJs-0IboqCpSgqh -O imagenet/validation/ILSVRC2012_img_val.tar
+tar -xvf imagenet/validation/ILSVRC2012_img_val.tar -C imagenet/validation/
+gdown 1VPcztiAjAkSitUOU2GIAxhx_1YM_OopK -O imagenet/validation/valprep.sh
+bash -v -c 'cd ./imagenet/validation && bash ./valprep.sh'
+```
+- download calibration dataset
+```
+mkdir -p imagenet/calibration
+gdown 1uZMo8xefLsB3Hl1A8GehZt_e9WbboxFg -O imagenet/calibration/imagenet_calibration.tar.gz
+tar -xvf imagenet/calibration/imagenet_calibration.tar.gz -C imagenet/calibration
+```
+## Run evaluation
+### pytorch model
+- gpu
+```
+python validate.py imagenet/validation/ --model efficientnet_b0 --pretrained -b 32
+
+```
+- cpu
+```
+python validate.py imagenet/validation/ --model efficientnet_b0 --pretrained -b 1 --no-cuda
+```
+### onnx model
+- export onnx model
+```
+python onnx_export.py --model efficientnet_b0 ./efficientnet_b0.onnx
+```
+```
+python onnx_validate.py imagenet/validation/ --onnx-input efficientnet_b0.onnx -b 1
+```
+### quantzed onnx model using python quantizer
+- quantize onnx model
+```
+python onnx_quantize_python_quantizer.py imagenet/calibration/ --onnx-input efficientnet_b0.onnx
+```
+- eval fake-quantzed onnx model
+```
+python onnx_validate.py imagenet/validation/ --onnx-input efficientnet_b0_fake_quant.onnx -b 1
+```
+- eval i8 onnx model
+```
+python onnx_validate_furiosa_runtime.py imagenet/validation/ --model-input efficientnet_b0_quant.onnx -b 1
+```
+### quantized onnx model using rust quantizer
+- quantize onnx model
+```
+python onnx_quantize_rust_quantizer.py imagenet/calibration/ --onnx-input efficientnet_b0.onnx -b 1
+```
+- eval i8 onnx model
+```
+python onnx_validate_furiosa_runtime.py imagenet/validation/ --model-input efficientnet_b0_quant.dfg -b 1
+```
+
 # (Generic) EfficientNets for PyTorch
 
 A 'generic' implementation of EfficientNet, MixNet, MobileNetV3, etc. that covers most of the compute/parameter efficient architectures derived from the MobileNet V1/V2 block sequence, including those found via automated neural architecture search. 
