@@ -1,5 +1,10 @@
 # (Generic) EfficientNets for PyTorch
 
+```diff
+-- **NOTE** This repo is not being maintained --
+```
+Please use [`timm`](https://github.com/huggingface/pytorch-image-models) instead. It includes all of these model definitions (compatible weights) and much much more.
+
 A 'generic' implementation of EfficientNet, MixNet, MobileNetV3, etc. that covers most of the compute/parameter efficient architectures derived from the MobileNet V1/V2 block sequence, including those found via automated neural architecture search. 
 
 All models are implemented by GenEfficientNet or MobileNetV3 classes, with string based architecture definitions to configure the block layouts (idea from [here](https://github.com/tensorflow/tpu/blob/master/models/official/mnasnet/mnasnet_models.py))
